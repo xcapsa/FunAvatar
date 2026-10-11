@@ -10,6 +10,16 @@ Use this route for a concrete defect in an authorized avatar project. Without a 
 
 Use `debug-plan` from [project checks](project-checks.md) for a local checklist. Its files begin unexecuted. Complete only checks actually observed; preserve failures and unknowns. Limit a task to two targeted correction rounds unless the user authorizes more, then return the useful result with remaining uncertainty.
 
+## Dynamic motion acceptance gate
+
+An avatar must follow its wearer's movement, rather than remain in its reference pose. For an intended Humanoid avatar, inspect mapping, bind pose, skin weights and actual IK/tracking. Check controller masks, competing animations/constraints and state exits before changing the rig; [Playable Layers](https://creators.vrchat.com/avatars/playable-layers/) can override the same bones, and an Action override must release its layer weight afterward. Preserve intentional nonhumanoid designs. Generated or retopologized meshes need weight/deformation revalidation.
+
+Give each moving part one intended owner. Attach props to the intended bone or supported constraint; confirm they follow it through motion. Mask graphics and brand decals must follow the actual skinned garment, UVs and material, with no unintended floating billboard. Optional hair/strap/tail motion needs a deliberate [PhysBone](https://creators.vrchat.com/common-components/physbones/) chain, gravity/inertia response, limits and colliders where needed; there is no universal preset. Do not put a PhysBone root on a Humanoid bone or combine PhysBone and Constraint control on the same object. `VRCPhysBoneRoot` timing is worlds-only. Check animated chains and return-to-rest/reset behavior.
+
+Do not add rigidbodies, Cloth, custom scripts or controllers as a generic physics fix. [Android limitations](https://creators.vrchat.com/platforms/android/quest-content-limitations/) disable Cloth, standard physics objects and Unity constraints on avatars; use only the actual target's supported setup and validate current PhysBone limits. These three pages were checked on 2026-10-11; recheck before later technical advice.
+
+Record the same before/after sequence: head turn, body turn, arms raised, crouch, lean, walk and fast stop, then settling to rest, interruption and reset/reload. Verify body tracking/deformation, attachments/decals and only the secondary motion actually used. Keep SDK build, local view, mirror, remote client and native Android results separate. Static art, one pose or a component inventory cannot pass this gate; missing project or runtime proof stays `not_verified`.
+
 ## Targeted checks
 
 | Symptom | Inspect before proposing a fix | Proof needed |

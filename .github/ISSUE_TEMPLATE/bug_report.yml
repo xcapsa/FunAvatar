@@ -1,0 +1,59 @@
+name: Bug or broken workflow
+description: Help improve FunAvatar with a reproducible problem.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve avatar creation. This issue will be public.
+        Do not include API keys, personal information, private URLs, complete chats, or avatar files you cannot share.
+        Italiano o English: entrambe le lingue vanno bene. A report is optional; you can continue using the skill without sending one.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to create or fix?
+      description: A short, sanitized excerpt of your input is enough.
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Workflow stage
+      options:
+        - Character design or reference images
+        - 3D production or Tripo workflow
+        - Blender or Unity project checks
+        - VRChat behavior or platform compatibility
+        - Installation or documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include only the steps needed to observe the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Relevant versions and platform
+      description: FunAvatar version, Codex or Claude, OS, and Blender/Unity/SDK/client or device when relevant. No account IDs are needed.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Optional sanitized evidence
+      description: A minimal log excerpt or screenshot you are allowed to publish. Check it for private data first.

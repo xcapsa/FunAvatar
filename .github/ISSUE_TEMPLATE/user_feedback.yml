@@ -1,0 +1,36 @@
+name: Avatar result or skill feedback
+description: Tell us when the result does not match your idea, even without a technical bug.
+title: "[Feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Your judgment matters: an avatar can build successfully and still miss the character you wanted.
+        This report will be public. Share only the input excerpt and details you want to publish.
+        Do not include personal information, keys, private URLs, full chats or unlicensed/private avatar assets.
+        Puoi scrivere in italiano o in inglese. La condivisione è volontaria.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What did you want?
+      description: Describe the character, look, behavior or assistance you expected. You may include a sanitized prompt excerpt.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What did not convince you?
+      description: For example, identity changed, proportions felt wrong, expression was flat, a transformation lost details, or instructions were confusing.
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make it better?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Optional context
+      description: Workflow stage, FunAvatar version, host, platform or a screenshot you can share publicly. No private assets are required.

@@ -10,6 +10,8 @@ For a future 3D implementation, the remaining work includes mesh construction an
 
 Treat PC and mobile/Quest targets separately. Preserve the requested visual identity while planning simplifications for the actual platform. Do not promise a performance rank from a concept image or triangle count alone.
 
+The implementation brief must include wearer-following body motion, intended prop attachment bones/constraints, garment-bound graphics and any optional secondary motion. Use the [dynamic motion acceptance gate](runtime-debug.md#dynamic-motion-acceptance-gate): rig/weights and actual tracking first, then the supported motion setup for hair, straps or other chosen parts. A reference pose or static mesh does not establish a moving avatar. Without the actual rig and client tests, keep dynamics `not_verified`; do not claim working gravity or tracking.
+
 ## Image-to-3D fidelity gate
 
 Apply this gate before rigging or effects, including when an image-to-3D tool produced the mesh. Verify that provider's current official input requirements and available settings; do not assume it supports multiview or understands a reference collage. Prepare clean, isolated character views with consistent proportions, plus separate head, hands and material references. Exclude grids, decorative labels, extra figures and “high-poly/game-ready” badges from conversion input. If only one view is supported, choose the appropriate clean character view and retain other references for comparison rather than feeding a collage by default.
@@ -21,6 +23,8 @@ Record intended height from the user brief when known, measurement points, units
 Mark the gate `pass`, `needs repair` or `not assessed`, with comparison evidence. Material identity loss, melted/fused details and unintended squat proportions block further rig/effect work until repaired or explicitly accepted by the user. Unknown back/side details remain unassessed. This is a manual/tool-assisted visual gate; the helper does not automatically judge semantic fidelity and generative 3D does not guarantee a perfect match.
 
 Keep the image-to-3D tool/provider, version, settings, input hashes, exported mesh/texture files and before/after comparison proof with the project. Without actual imported-model evidence, keep reference fidelity unverified. Use `debug-plan --symptom fidelity` for an unexecuted checklist; see [project checks](project-checks.md).
+
+After conversion, retopology or a later mesh replacement, revalidate bone assignments, skin weights and deformation on the final imported mesh before motion acceptance. A prior rig check does not transfer automatically to changed geometry.
 
 ## Verify current official guidance
 

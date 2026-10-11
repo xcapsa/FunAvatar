@@ -1,4 +1,7 @@
 interface:
   display_name: "FunAvatar"
-  short_description: "Avatar concepts, project inspection and runtime debug"
-  default_prompt: "Use $funavatar to create reviewed avatar references or inspect and debug my existing avatar project with clear test evidence."
+  short_description: "Expressive avatars, concepts, tracked 3D and debug"
+  icon_small: "./assets/branding/funavatar-logo.png"
+  icon_large: "./assets/branding/funavatar-logo.png"
+  brand_color: "#C8F431"
+  default_prompt: "Use $funavatar to design an expressive character, create consistent references, track authorized 3D production, or debug my avatar with clear test evidence."

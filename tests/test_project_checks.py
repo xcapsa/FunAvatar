@@ -96,6 +96,23 @@ class ProjectChecksTests(unittest.TestCase):
         self.assertEqual(by_id["missing_material_slots"]["status"], "needs_review")
         self.assertEqual(result["reports"][0]["additional_observations"]["conditional_animation_bindings"], 3)
 
+    def test_clean_static_reports_cannot_certify_dynamic_motion(self):
+        blender = self.report("blender", {"mesh_count": 1, "triangle_count": 12000,
+                                           "zero_area_faces": 0, "nonfinite_vertices": 0,
+                                           "armature_count": 1, "unweighted_vertices": 0,
+                                           "nonuniform_scale_objects": 0})
+        unity = self.report(observations={"renderer_count": 1, "missing_scripts": 0,
+                                           "missing_material_slots": 0, "missing_shaders": 0,
+                                           "missing_animation_bindings": 0, "invalid_humanoid_avatars": 0,
+                                           "vrchat_descriptor_count": 1})
+        code, output, errors = self.run_cli("project-check", str(blender), str(unity))
+        self.assertEqual((code, errors), (0, ""))
+        result = json.loads(output)
+        self.assertTrue(all(item["status"] == "pass" for item in self.by_id(result).values()))
+        motion = next(item for item in result["required_evidence"] if item["id"] == "dynamic_motion")
+        self.assertEqual((motion["status"], motion["evidence"]), ("not_verified", None))
+        self.assertEqual((result["status"], result["runtime_status"]), ("not_verified", "not_verified"))
+
     def test_geometry_and_missing_references_fail_but_counts_have_no_performance_budget(self):
         blender = self.report("blender", {"nonfinite_vertices": 1, "triangle_count": 100_000_000,
                                            "unweighted_vertices": 5, "nonuniform_scale_objects": 1})
@@ -185,6 +202,13 @@ class ProjectChecksTests(unittest.TestCase):
                     self.assertIn("imported engine height", steps)
                     self.assertIn("Stop before rig or effects", steps)
                     self.assertIn("reference_fidelity", {item["id"] for item in plan["evidence_checklist"]})
+                if symptom == "motion":
+                    required = {item["id"] for item in plan["evidence_checklist"]}
+                    self.assertTrue({"baseline", "rig_and_weights", "tracked_motion", "secondary_motion", "second_client"} <= required)
+                    steps = " ".join(plan["steps"])
+                    self.assertIn("wearer tracking/IK", steps)
+                    self.assertIn("intentionally absent", steps)
+                    self.assertIn("native Android proof separate", steps)
                 self.assertTrue(all(item["status"] == "not_verified" and item["evidence"] is None for item in plan["evidence_checklist"]))
                 self.assertIn("android_device", {item["id"] for item in plan["evidence_checklist"]})
                 self.assertIn("no project inspection or tests executed", (target / "debug-plan.md").read_text())

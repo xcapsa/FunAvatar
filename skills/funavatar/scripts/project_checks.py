@@ -47,6 +47,7 @@ OPTIONAL_COUNTS = {"unity": {"checked_animation_bindings", "conditional_animatio
 RUNTIME_CHECKS = (
     ("reference_fidelity", "shading", "Compare neutral model views and measured proportions with the approved reference; static counts cannot certify visual similarity."),
     ("deformation_and_bounds", "skin", "Compare imported pose extremes, skin weights and renderer bounds with the source model."),
+    ("dynamic_motion", "humanoid", "Verify wearer-following tracking/IK, skin deformation and attachments through head/body turns, raised arms, crouch, lean, walk and fast stop; record rest, interruption and reset separately per client/platform. Static counts or one pose cannot certify motion."),
     ("effects_and_reset", "layers", "Trace parameter, state, mask and property; test off/on/reset, interruption and reloading."),
     ("remote_visibility", "parameters", "Test a second VRChat client, including late join and synchronized parameters."),
     ("target_performance_and_compatibility", "android", "Run SDK validation and measure the intended build on target hardware; counts alone do not certify it."),
@@ -85,9 +86,10 @@ SYMPTOM_STEPS = {
         ("shading", "Inspect normals and local topology for shading or silhouette defects; avoid blanket subdivision or upscaling as a claimed fix."),
     ),
     "motion": (
-        ("humanoid", "Compare source and imported clip with the intended rig mapping and reference pose; isolate rotation curves, resampling and scale."),
-        ("layers", "Trace parameters, transitions, layer order and masks during idle/walk/emote and transformation forward/reverse; inspect interruption and reset."),
-        ("physbones", "If secondary motion is involved, check PhysBone root/chain/endpoints and collisions before tuning forces; compare the same motion on target."),
+        ("humanoid", "Inspect rig mapping, rest/bind pose, skin weights and imported deformation against the baseline; revalidate changed generated/retopologized meshes. Preserve intentional nonhumanoid rigs."),
+        ("layers", "Trace wearer tracking/IK, parameters, transitions, masks and competing animation/constraint ownership; confirm emote/transformation exits restore intended tracking. Check attached props and garment-bound graphics follow their actual bones or skinned mesh."),
+        ("physbones", "Declare which secondary motion is used or intentionally absent. For used PhysBones inspect roots/chains/endpoints, gravity/inertia, limits and colliders; avoid Humanoid roots or Constraint control on the same object. No universal preset or worlds-only VRCPhysBoneRoot timing on avatars."),
+        ("android", "Repeat head/body turns, arms raised, crouch, lean, walk and fast stop, then rest, interruption and reset. Keep local view, mirror, remote client and native Android proof separate; do not add unsupported rigidbodies/Cloth or custom scripts as a generic motion fix."),
     ),
 }
 
@@ -241,6 +243,12 @@ def debug_plan(symptom: str, out: str, platform: str = "both") -> dict:
     ]
     if symptom == "fidelity":
         evidence.append(("reference_fidelity", "Approved reference identity/hash, matching neutral model views and documented model-unit/engine-height comparison with the brief."))
+    if symptom == "motion":
+        evidence.extend([
+            ("rig_and_weights", "Baseline and final imported rig mapping, bind pose, skin weights and controlled deformation comparison, including any generated/retopologized mesh change."),
+            ("tracked_motion", "Before/after wearer tracking/IK sequence: head/body turns, arms raised, crouch, lean, walk, fast stop, rest, interruption and reset; attachments and garment graphics follow correctly. Separate local view and mirror proof."),
+            ("secondary_motion", "Declare used or intentionally absent secondary motion; before/after setup and motion/rest/reset proof for the chains, gravity/inertia, limits and collisions actually used, on each intended target."),
+        ])
     if symptom in ("effects", "remote", "motion"):
         evidence.append(("second_client", "Second-client and late-join recording with reset/interruption results."))
     if platform in ("android", "both") or symptom == "mobile":
