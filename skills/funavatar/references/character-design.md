@@ -51,7 +51,7 @@ Resolve the intended scope from the request. Distinguish device/platform coverag
 
 For VRChat, plan a shared identity with platform-specific builds as needed. PC, native Android/Quest and native iOS have different capabilities or restrictions. Quest connected to a PC uses the PC client; it is not evidence for the native Quest build. Do not assume an Android test certifies iOS.
 
-The current offline helpers and 3D ledger accept `pc`, `android` and `both`, where `both` means PC plus Android only. iOS is a planning route in this guide, not an implemented helper target. If iOS is requested, retain it explicitly in the avatar contract and record its SDK/client/device evidence separately; do not relabel it as Android or mark it passed through a `both` check.
+The project-check/debug-plan tools and 3D ledger use `pc`, `android` and `both`, where `both` means PC plus Android only. The separate [numeric budget checker](performance-budgets.md) can apply the shared mobile profile to `ios`, and a native report can record an iOS target; neither adds an iOS SDK/client gate to the ledger. Retain requested iOS support in the avatar contract and record its SDK/client/device evidence separately; do not relabel it as Android or mark it passed through a `both` check.
 
 Use a compact matrix for the actual targets:
 
