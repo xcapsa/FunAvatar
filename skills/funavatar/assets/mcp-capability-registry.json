@@ -1,0 +1,123 @@
+{
+  "schema": "funavatar.mcp-capability-registry.v1",
+  "checked_on": "2026-10-12",
+  "scope": "Pinned source observations; no local connection or execution is implied.",
+  "states": ["unknown", "source_inspected", "connected", "executed"],
+  "local_evidence_template": {
+    "state": "unknown",
+    "host": null,
+    "installed_version": null,
+    "installed_sha256": null,
+    "observed_tool_name": null,
+    "observed_operation": null,
+    "input_schema_sha256": null,
+    "subject_sha256": null,
+    "target": null,
+    "read_only_response": null,
+    "execution_output_sha256": null,
+    "native_readback": null,
+    "observed_at": null
+  },
+  "entries": [
+    {
+      "id": "blender-copilot",
+      "state": "source_inspected",
+      "repository": "https://github.com/dwgx/blender-copilot",
+      "commit": "ca345c1aea977d9103df0ceca6fcff9fe3865951",
+      "license": "MIT",
+      "license_path": "LICENSE",
+      "source_symbols": {
+        "src/blender_copilot/server.py": ["run_blender_script"],
+        "src/blender_copilot/face_tracking_tools.py": ["ft_create_arkit_shapes", "ft_create_unified_expressions"],
+        "src/blender_copilot/rigify_tools.py": ["rigify_to_vrc"]
+      },
+      "observed_local_tools": [],
+      "limitations": [
+        "Shape-key generation includes empty placeholders and heuristic displacements.",
+        "rigify_to_vrc reparents original meshes and renames their vertex groups.",
+        "vrc_decimate does not establish preserved facial deformation.",
+        "vrc_bake_atlas is diffuse-only and can report atlas_created after bake failure.",
+        "unity_build_avatar calls pre-build validation callbacks; no bundle is produced by that function."
+      ]
+    },
+    {
+      "id": "sandraschi-blender-mcp",
+      "state": "source_inspected",
+      "repository": "https://github.com/sandraschi/blender-mcp",
+      "commit": "3f158ed1047329c81fe6adb6fb8d00ca1bcdd158",
+      "license": "MIT",
+      "license_path": "LICENSE",
+      "source_symbols": {
+        "src/blender_mcp/handlers/mesh_validation_handler.py": ["validate_mesh_geometry", "check_mesh_manifold"],
+        "src/blender_mcp/handlers/vision_refine_handler.py": ["vision_review_bundle"],
+        "src/blender_mcp/utils/blender_executor.py": ["BlenderExecutor.execute_script"]
+      },
+      "observed_local_tools": [],
+      "limitations": [
+        "Helper function names are not evidence of registered MCP tool names.",
+        "Geometry helper reads obj.data, not final post-modifier or post-NDMF output.",
+        "Review bundle outer success does not guarantee successful nested captures.",
+        "Sampling capability tools return descriptions rather than authoring assets.",
+        "Prometheus metrics are enabled by default when available; review exposure and logging."
+      ]
+    },
+    {
+      "id": "sandraschi-unity3d-mcp",
+      "state": "source_inspected",
+      "repository": "https://github.com/sandraschi/unity3d-mcp",
+      "commit": "6d7e12b3e55c118f1ee9af9067cbf53cd3aadc58",
+      "license": "MIT",
+      "license_path": "LICENSE",
+      "source_symbols": {
+        "src/unity3d_mcp/resources/MCPBridge.cs": ["MCPBridge"],
+        "src/unity3d_mcp/tools/portmanteau/unity_disk_ops.py": ["UnityDiskOps.inspect_file", "UnityDiskOps.modify_yaml_property"],
+        "src/unity3d_mcp/server.py": ["unity3d_agentic_workflow"]
+      },
+      "observed_local_tools": [],
+      "limitations": [
+        "VRChatSDKManager._run_unity_validation returns fixed valid=True, Good and zero counts; it is a stub.",
+        "Disk modification uses substring line matching, not identity-aware Unity serialization.",
+        "Agentic entrypoint samples a plan without executing the tools.",
+        "Upload returncode zero can produce success without avatar_id; no receipt is implied.",
+        "Authentication accepts password/TOTP and persists authToken JSON; do not adopt as the FunAvatar default.",
+        "Live bridge needs the matching Editor/project; Prometheus metrics are enabled by default when available."
+      ]
+    },
+    {
+      "id": "vrchat-mcp-osc",
+      "state": "source_inspected",
+      "repository": "https://github.com/Krekun/vrchat-mcp-osc",
+      "commit": "bd125daa1c3a04feac68f1d9addf615e2e23f90e",
+      "license": "README claims MIT for noncommercial use and separate commercial permission; no LICENSE file found",
+      "license_path": "README.md#license",
+      "source_symbols": {
+        "packages/relay-server/src/osc-client.ts": ["VRChatOSCClient.start", "VRChatOSCClient.send_message"]
+      },
+      "observed_local_tools": [],
+      "limitations": [
+        "Do not copy into general distribution without resolving commercial permission.",
+        "Startup sends a chatbox message; it is not read-only discovery.",
+        "UDP enqueue success does not establish client behavior or remote receipt.",
+        "Messages and parameter values are logged; account/avatar configuration discovery is Windows-specific."
+      ]
+    },
+    {
+      "id": "seidr-smidja",
+      "state": "source_inspected",
+      "repository": "https://github.com/hrabanazviking/Seidr-Smidja",
+      "commit": "132fcc2777467f56637ccb1be4001d2fd880eecb",
+      "license": "Apache-2.0 in LICENSE and updated README; NOTICE present; pyproject still says MIT",
+      "license_path": "LICENSE",
+      "source_symbols": {
+        "src/seidr_smidja/gate/gate.py": ["_check_vrchat", "check"]
+      },
+      "observed_local_tools": [],
+      "limitations": [
+        "Polygon and texture memory checks are unevaluated advisory warnings.",
+        "passed=True therefore does not establish measured budget compliance.",
+        "Structural VRM checks do not validate a built VRChat avatar.",
+        "Verify file provenance and preserve LICENSE/NOTICE before selective reuse."
+      ]
+    }
+  ]
+}

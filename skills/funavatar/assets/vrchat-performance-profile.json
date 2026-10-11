@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "profile_id": "vrchat-good-partial-2026-04-21",
+  "scope": "Partial numeric profile; not an SDK performance rank or upload decision",
+  "checked_on": "2026-10-12",
+  "sources": [
+    {"url": "https://creators.vrchat.com/avatars/avatar-performance-ranking-system/", "last_updated": "2026-04-21"},
+    {"url": "https://creators.vrchat.com/avatars/animator-parameters/", "last_updated": "2025-12-12"}
+  ],
+  "measurement_notes": {
+    "texture_memory_mb": "Use the measured VRChat texture-memory figure in MB, not texture-file size.",
+    "contacts": "Exclude contact receivers filtered as Local Only.",
+    "physbone_collision_checks": "Use the sum of affected transforms for each collider; transforms may count more than once.",
+    "constraints": "Count both VRChat and Unity constraints.",
+    "constraint_depth": "Use deepest constraint dependency chain, not hierarchy depth."
+  },
+  "good": {
+    "pc": {
+      "triangles": 70000,
+      "texture_memory_mb": 75,
+      "skinned_meshes": 2,
+      "material_slots": 8,
+      "physbone_components": 8,
+      "physbone_transforms": 64,
+      "physbone_colliders": 8,
+      "physbone_collision_checks": 128,
+      "contacts": 16,
+      "constraints": 250,
+      "constraint_depth": 50
+    },
+    "mobile": {
+      "triangles": 10000,
+      "texture_memory_mb": 18,
+      "skinned_meshes": 1,
+      "material_slots": 1,
+      "physbone_components": 4,
+      "physbone_transforms": 16,
+      "physbone_colliders": 4,
+      "physbone_collision_checks": 16,
+      "contacts": 4,
+      "constraints": 60,
+      "constraint_depth": 15
+    }
+  },
+  "hard_limits": {
+    "mobile": {
+      "physbone_components": 8,
+      "physbone_transforms": 64,
+      "physbone_colliders": 16,
+      "physbone_collision_checks": 64,
+      "contacts": 16,
+      "constraints": 150,
+      "constraint_depth": 50
+    }
+  },
+  "mobile_triangles": {
+    "very_poor_above": 20000,
+    "absolute_upload_limit": false,
+    "scope": "Triangle contribution to Very Poor ranking and visibility handling; not an absolute upload block"
+  },
+  "expression_parameters": {
+    "max_synced_bits": 256,
+    "max_custom_parameters": 8192,
+    "synced_bits_per_type": {"bool": 1, "int": 8, "float": 8},
+    "built_in_read_only": [
+      "IsLocal", "PreviewMode", "Viseme", "Voice", "GestureLeft", "GestureRight",
+      "GestureLeftWeight", "GestureRightWeight", "AngularY", "VelocityX", "VelocityY",
+      "VelocityZ", "VelocityMagnitude", "Upright", "Grounded", "Seated", "AFK",
+      "TrackingType", "VRMode", "MuteSelf", "InStation", "Earmuffs", "IsOnFriendsList",
+      "AvatarVersion", "IsAnimatorEnabled", "ScaleModified", "ScaleFactor",
+      "ScaleFactorInverse", "EyeHeightAsMeters", "EyeHeightAsPercent"
+    ]
+  }
+}

@@ -32,3 +32,6 @@ jobs:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -p test_install.py -v
       - run: python -m unittest discover -s tests -p test_funavatar_update.py -v
+      - run: python -m unittest discover -s tests -p test_vrc_acceptance.py -v
+      - run: python -m unittest discover -s tests -p test_osc_avatar.py -v
+      - run: python -m unittest discover -s tests -p test_blender_face_probe.py -v

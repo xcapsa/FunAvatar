@@ -85,6 +85,16 @@ Read the [3D workflow](skills/funavatar/references/workflow-3d.md) for exact com
 
 ## Guides and local tools
 
+### Verified Blender, Unity and OSC work
+
+The [agent pipeline](skills/funavatar/references/agent-pipeline.md) compares concrete upstream implementations with native workflows. Its [capability registry](skills/funavatar/assets/mcp-capability-registry.json) records pinned sources, licenses and incomplete/stub paths; an installed or connected tool is checked separately from a successfully executed operation.
+
+- **Facial deformation probe:** inspects stored shape-key deltas against the real relative key inside Blender. Requested missing or empty shapes remain defects even if an upstream generator reports success. A nonzero delta is not an aesthetic or tracking certificate.
+- **Measured budget checker:** validates a dated partial Good profile, separate mobile component limits and custom parameter bits. Unknown measurements remain unknown; it does not declare an official SDK rank.
+- **OSC planner:** reads an explicit avatar config and prepares typed set/reset packets with identity and hash checks. It sends no packets, chatbox messages or audio; runtime control requires a separately authorized connector and actual client observations.
+
+These helpers use native Blender or the Python standard library. The addition includes no copied third-party implementation, automatic server installation or avatar upload.
+
 - [Character foundations and distinctive features](skills/funavatar/references/character-design.md)
 - [Native authoring and execution checks](skills/funavatar/references/native-production.md)
 - [Production tools and provider-neutral handoffs](skills/funavatar/references/production-tools.md)
@@ -93,6 +103,8 @@ Read the [3D workflow](skills/funavatar/references/workflow-3d.md) for exact com
 - [Modeling handoff and fidelity gate](skills/funavatar/references/technical-handoff.md)
 - [Blender/Unity project checks](skills/funavatar/references/project-checks.md)
 - [Runtime debugging](skills/funavatar/references/runtime-debug.md)
+- [Measured performance and parameter budgets](skills/funavatar/references/performance-budgets.md)
+- [OSC inspection, plans and runtime boundaries](skills/funavatar/references/osc-runtime.md)
 
 The core helper creates briefs/prompts, checks image headers and hashes, reads compact native reports and prepares unexecuted debug plans. Blender's collector runs inside Blender; Unity's collector requires the user's authorized project and supported editor. Follow the current [VRChat Unity guidance](https://creators.vrchat.com/sdk/upgrade/current-unity-version/) before choosing an editor. Helper tests do not establish deformation, PhysBones, synchronization or native-device behavior for a real avatar.
 
