@@ -1,0 +1,38 @@
+{
+  "status": "pass",
+  "minimum_long_edge": 1536,
+  "images": [
+    {
+      "path": "human-turnaround.png",
+      "format": "PNG",
+      "width": 1672,
+      "height": 941,
+      "long_edge": 1672,
+      "bytes": 1977118,
+      "sha256": "e007987cfc18ad4e0b9d4418c33d2dab960ddf89987fa7f4d9c2af7f475cedea",
+      "status": "pass"
+    },
+    {
+      "path": "bradipo-turnaround.png",
+      "format": "PNG",
+      "width": 1672,
+      "height": 941,
+      "long_edge": 1672,
+      "bytes": 2082484,
+      "sha256": "07e2d899816705762851029666b50efd1e9cf769a63a3d7bdc97dd1d24560795",
+      "status": "pass"
+    },
+    {
+      "path": "details.png",
+      "format": "PNG",
+      "width": 1536,
+      "height": 1024,
+      "long_edge": 1536,
+      "bytes": 2285195,
+      "sha256": "83e35f2a12b08a28499086b16b074899ebe00e13cce6cfb6eea063881b9ad981",
+      "status": "pass"
+    }
+  ],
+  "checks": "PNG/JPEG/WebP header and container structure, dimensions, file size and SHA-256",
+  "limitations": "No pixel decoding or visual review. Cannot verify anatomy, character consistency, originality, 3D validity, rigging or VRChat compatibility."
+}

@@ -56,6 +56,10 @@ Automated checks cannot judge anatomy, visual consistency, model topology or VRC
 
 [L'Infissiologo](examples/infissiologo/) is an Oculandia human character with a sloth transformation. The folder contains separate full-resolution sheets, the prompts used and review notes. Original source references and personal local paths are not included.
 
+![L'Infissiologo sloth transformation](examples/infissiologo/bradipo-turnaround.png)
+
+Download the installable skill and all example sheets from [Releases](https://github.com/xcapsa/FunAvatar/releases/latest). Actual image sizes are 1672 × 941 for each body sheet and 1536 × 1024 for details; no upscaling was used.
+
 ## Development
 
 ```bash
