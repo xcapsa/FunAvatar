@@ -1,0 +1,4 @@
+interface:
+  display_name: "FunAvatar"
+  short_description: "Consistent avatar concepts and modeling references"
+  default_prompt: "Use $funavatar to turn my idea or reference into consistent avatar concept sheets with visual review."
