@@ -107,6 +107,183 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(summary["jobs"], [])
         self.assertEqual(self.wf.path.read_bytes(), before)
 
+    def test_rejected_submission_keeps_safe_diagnosis_in_cli_and_offline_status(self):
+        self.plan()
+        self.client.submit_error = workflow_module.APIError(
+            "private provider body https://private.example/?token=secret", status=422, code=2008)
+        with patch("tripo_api.TripoClient", return_value=self.client), \
+                patch("sys.stdout", new_callable=io.StringIO) as output:
+            code = workflow_module.main(["submit", str(self.wf.path), "--job", "draft"])
+        self.assertEqual(code, 3)
+        result = json.loads(output.getvalue())
+        diagnostic = result["last_error"]
+        self.assertEqual((diagnostic["stage"], diagnostic["operation"], diagnostic["type"]),
+                         ("submit", "text_to_model", "APIError"))
+        self.assertEqual((diagnostic["http_status"], diagnostic["provider_code"]), (422, 2008))
+        self.assertIsNotNone(workflow_module.datetime.fromisoformat(diagnostic["observed_at"]).tzinfo)
+        self.assertEqual(self.reopen().read_json()["jobs"]["draft"]["last_error"], diagnostic)
+        with patch("tripo_api.TripoClient", side_effect=AssertionError("Status must remain offline")), \
+                patch("sys.stdout", new_callable=io.StringIO) as output:
+            self.assertEqual(workflow_module.main(["status", str(self.wf.path)]), 0)
+        self.assertEqual(json.loads(output.getvalue())["jobs"][0]["last_error"], diagnostic)
+        self.assertEqual(len(self.client.submissions), 1)
+        for content in (self.wf.path.read_text(), output.getvalue(), json.dumps(result)):
+            self.assertNotIn("private provider body", content)
+            self.assertNotIn("token=secret", content)
+
+    def test_failed_task_without_later_detail_keeps_the_previous_diagnosis(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "failed", "error": {"code": 3004}})
+        diagnostic = self.wf.resume("draft", self.client, download=False)["last_error"]
+        self.client.tasks["task_1"].pop("error")
+        result = self.reopen().resume("draft", self.client, download=False)
+        self.assertEqual(result["last_error"], diagnostic)
+        self.assertEqual(result["status"], "failed")
+
+    def test_failed_task_uninformative_errors_keep_the_original_diagnosis_and_timestamp(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "failed", "error": {"code": 3004}})
+        with patch.object(workflow_module, "now", return_value="2026-10-12T00:00:00+00:00"):
+            diagnostic = self.wf.resume("draft", self.client, download=False)["last_error"]
+        for error in ({}, "generic failure", {"message": "generic failure"},
+                      {"code": "3004", "status": True}, {"code": 3004}):
+            with self.subTest(error=error), \
+                    patch.object(workflow_module, "now", return_value="2026-10-12T01:00:00+00:00"):
+                self.client.tasks["task_1"]["error"] = error
+                result = self.reopen().resume("draft", self.client, download=False)
+                self.assertEqual(result["last_error"], diagnostic)
+
+    def test_failed_task_new_safe_metadata_updates_the_diagnosis_and_timestamp(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "failed", "error": {"code": 3004}})
+        with patch.object(workflow_module, "now", return_value="2026-10-12T00:00:00+00:00"):
+            self.wf.resume("draft", self.client, download=False)
+        self.client.tasks["task_1"]["error"] = {"code": 3005, "message": "private failure text"}
+        with patch.object(workflow_module, "now", return_value="2026-10-12T01:00:00+00:00"):
+            result = self.reopen().resume("draft", self.client, download=False)
+        self.assertEqual(result["last_error"]["provider_code"], 3005)
+        self.assertEqual(result["last_error"]["observed_at"], "2026-10-12T01:00:00+00:00")
+        self.assertNotIn("private failure text", self.wf.path.read_text())
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_diagnostics_never_copy_non_numeric_error_metadata_or_provider_text(self):
+        for index, error in enumerate([
+            {"status": True, "code": False, "message": "private prompt"},
+            {"status": "private token", "code": "https://private.example/?token=secret"},
+            {"status": 999, "code": 1.5}, "private task failure",
+        ]):
+            with self.subTest(error=index):
+                job_id = f"failure-{index}"
+                self.plan(job_id, "1")
+                task_id = self.wf.submit(job_id, self.client)["task_id"]
+                self.client.tasks[task_id].update({"status": "failed", "error": error})
+                diagnostic = self.wf.resume(job_id, self.client, download=False)["last_error"]
+                self.assertIsNone(diagnostic["http_status"])
+                self.assertIsNone(diagnostic["provider_code"])
+        saved = self.reopen().path.read_text()
+        for secret in ("private prompt", "private token", "private.example", "private task failure"):
+            self.assertNotIn(secret, saved)
+
+    def test_arbitrary_exception_message_and_class_name_are_not_recorded_or_echoed(self):
+        self.plan()
+        private_exception = type("PrivatePromptInClassName", (RuntimeError,), {})
+        self.client.submit_error = private_exception("secret prompt https://private.example/?token=secret")
+        with self.assertRaises(ValueError) as raised:
+            self.wf.submit("draft", self.client)
+        job = self.reopen().read_json()["jobs"]["draft"]
+        self.assertEqual(job["status"], "unknown_submission")
+        self.assertEqual(job["last_error"]["type"], "UnexpectedError")
+        for content in (self.wf.path.read_text(), str(raised.exception)):
+            for secret in ("PrivatePromptInClassName", "secret prompt", "private.example", "token=secret"):
+                self.assertNotIn(secret, content)
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_uncertain_upload_keeps_diagnosis_and_does_not_repeat_upload(self):
+        self.asset()
+        with patch.object(self.client, "upload_file", side_effect=workflow_module.SubmissionUncertain(
+                "private upload body", status=503)) as upload:
+            with self.assertRaises(workflow_module.SubmissionUncertain):
+                self.wf.upload("mesh", self.client)
+            with self.assertRaises(ValueError):
+                self.reopen().upload("mesh", self.client)
+        self.assertEqual(upload.call_count, 1)
+        recorded = self.wf.read_json()["artifacts"]["mesh"]["upload"]
+        self.assertEqual(recorded["status"], "unknown")
+        self.assertEqual(recorded["last_error"]["http_status"], 503)
+
+    def test_uncertain_diagnosis_survives_reopen_without_releasing_budget_or_retrying(self):
+        self.plan()
+        self.client.submit_error = workflow_module.SubmissionUncertain("private token", status=503)
+        result = self.wf.submit("draft", self.client)
+        self.assertEqual(result["status"], "unknown_submission")
+        self.assertEqual(result["last_error"]["type"], "SubmissionUncertain")
+        self.assertEqual(result["last_error"]["http_status"], 503)
+        self.assertEqual(self.reopen().resume("draft", self.client, download=False)["last_error"],
+                         result["last_error"])
+        with self.assertRaises(ValueError):
+            self.wf.submit("draft", self.client)
+        self.assertEqual(self.wf.summary()["budget"]["committed_credits"], "6.00")
+        self.assertEqual(len(self.client.submissions), 1)
+        self.assertEqual(self.client.lookups, [])
+
+    def test_failed_task_keeps_only_safe_provider_error_after_reopen(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "failed", "error": {
+            "code": 3004, "message": "private prompt", "url": "https://private.example/?signature=secret",
+            "token": "secret-token"}})
+        result = self.wf.resume("draft", self.client, download=False)
+        diagnostic = result["last_error"]
+        self.assertEqual((diagnostic["stage"], diagnostic["operation"], diagnostic["type"]),
+                         ("task", "text_to_model", "ProviderTaskError"))
+        self.assertEqual(diagnostic["provider_code"], 3004)
+        self.assertEqual(self.reopen().summary()["jobs"][0]["last_error"], diagnostic)
+        self.assertEqual(self.wf.summary()["budget"]["committed_credits"], "6.00")
+        for content in (self.wf.path.read_text(), json.dumps(result)):
+            for secret in ("private prompt", "private.example", "secret-token", "signature=secret"):
+                self.assertNotIn(secret, content)
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_upload_failure_diagnosis_is_durable_and_safe(self):
+        self.asset()
+        with patch.object(self.client, "upload_file", side_effect=workflow_module.APIError(
+                "private upload token", status=413, code=2012)), self.assertRaises(workflow_module.APIError) as raised:
+            self.wf.upload("mesh", self.client)
+        diagnostic = self.reopen().read_json()["artifacts"]["mesh"]["upload"]["last_error"]
+        self.assertEqual((diagnostic["stage"], diagnostic["operation"]), ("upload", "upload_file"))
+        self.assertEqual((diagnostic["http_status"], diagnostic["provider_code"]), (413, 2012))
+        self.assertEqual(self.wf.summary()["artifacts"][0]["upload"]["last_error"], diagnostic)
+        self.assertNotIn("private upload token", str(raised.exception))
+        self.assertNotIn("private upload token", self.wf.path.read_text())
+
+    def test_poll_failure_keeps_diagnosis_and_known_task_without_new_post(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        with patch.object(self.client, "get_task", side_effect=workflow_module.APIError(
+                "private poll token", status=429)), self.assertRaises(workflow_module.APIError) as raised:
+            self.wf.resume("draft", self.client, download=False)
+        saved = self.reopen().read_json()["jobs"]["draft"]
+        self.assertEqual((saved["status"], saved["task_id"]), ("submitted", "task_1"))
+        self.assertEqual(saved["last_error"]["stage"], "poll")
+        self.assertEqual(saved["last_error"]["http_status"], 429)
+        self.assertNotIn("private poll token", str(raised.exception))
+        self.assertEqual(self.wf.summary()["budget"]["committed_credits"], "6.00")
+        self.wf.resume("draft", self.client, download=False)
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_legacy_manifest_without_diagnostics_remains_valid_and_status_does_not_rewrite_it(self):
+        self.plan()
+        legacy = self.wf.read_json()
+        legacy["jobs"]["draft"].pop("last_error", None)
+        self.wf._save(legacy)
+        before = self.wf.path.read_bytes()
+        self.assertIsNone(self.reopen().summary()["jobs"][0].get("last_error"))
+        self.assertEqual(self.wf.path.read_bytes(), before)
+        self.assertEqual(self.wf.submit("draft", self.client)["status"], "submitted")
+
     def test_invalid_budget_cannot_initialize(self):
         for number, value in enumerate(["-1", "NaN", "Infinity", "", True]):
             with self.subTest(value=value), self.assertRaises((ValueError, TypeError)):

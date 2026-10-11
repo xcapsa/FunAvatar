@@ -17,6 +17,8 @@ budget. A Studio subscription does not establish API credit access. If that
 scope is absent, prepare inputs and the ledger or inspect an existing export;
 ask only for the missing information needed for an external action.
 
+Here `both` means PC plus Android/Quest, not all VRChat platforms. iOS is not an implemented ledger target or SDK/client gate. Preserve an iOS requirement in the avatar contract and keep its evidence separately until explicit target support exists; never count an Android or `both` gate as iOS validation.
+
 When Tripo is selected, use [tripo.md](tripo.md) for clean inputs and the pre-rig fidelity gate. Choose
 the actual available mode/model for the task; do not require an expensive
 high-detail generation followed by retopology when a direct topology-oriented
@@ -41,6 +43,8 @@ The ledger contains:
   input revision hashes, parent job, maximum credit reservation, task ID, status
   and observed charge evidence.
 - Revision-specific gates, their history, target, notes and hashed evidence.
+
+Failed submissions, uploads, task queries and failed/cancelled tasks retain optional `last_error` metadata: stage, operation, observation time, a fixed error class and numeric HTTP/provider codes when available. `status` exposes this diagnostic without contacting the provider. The message is generated locally; provider text, response bodies and signed URLs are not copied. `last_error` is historical and must be read alongside the current job status. Existing ledgers without this field remain valid; an uncertain submission still retains its reservation and is never resubmitted automatically.
 
 Keep originals and derivatives in separate files. Register a changed model,
 material package, Unity project snapshot or relevant configuration report under

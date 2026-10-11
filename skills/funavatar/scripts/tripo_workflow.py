@@ -142,6 +142,41 @@ def _safe_payload(value, depth=0):
         raise WorkflowError("Nonfinite payload number")
 
 
+def _diagnostic(stage, operation, error):
+    """Keep useful failure metadata without trusting provider/exception text."""
+    status = code = None
+    if stage == "task":
+        error_type = "ProviderTaskError"
+        if isinstance(error, dict):
+            status, code = error.get("status"), error.get("code")
+        elif type(error) is int:
+            code = error
+    else:
+        error_type = next((name for cls, name in (
+            (SubmissionUncertain, "SubmissionUncertain"), (APIError, "APIError"),
+            (TimeoutError, "TimeoutError"), (OSError, "OSError"),
+            (WorkflowError, "WorkflowError"), (KeyboardInterrupt, "KeyboardInterrupt"),
+            (SystemExit, "SystemExit")) if isinstance(error, cls)), "UnexpectedError")
+        if isinstance(error, APIError):
+            status, code = error.status, error.code
+    # bools, numeric strings and provider free text are not numeric evidence.
+    status = status if type(status) is int and 100 <= status <= 599 else None
+    code = code if type(code) is int else None
+    details = [error_type]
+    if status is not None:
+        details.append(f"HTTP {status}")
+    if code is not None:
+        details.append(f"provider code {code}")
+    return {"stage": stage, "operation": operation, "type": error_type,
+            "http_status": status, "provider_code": code, "observed_at": now(),
+            "message": f"Tripo {stage} error: {', '.join(details)}"}
+
+
+def _safe_api_error(error, diagnostic):
+    cls = SubmissionUncertain if isinstance(error, SubmissionUncertain) else APIError
+    return cls(diagnostic["message"], status=diagnostic["http_status"], code=diagnostic["provider_code"])
+
+
 class Workflow:
     def __init__(self, path):
         original = Path(path).expanduser().absolute()
@@ -256,13 +291,17 @@ class Workflow:
                     effective = "not_assessed"
                 gates[gate] = {**result, "recorded_status": result["status"], "status": effective}
             artifacts.append({"id": asset["id"], "stage": asset["stage"], "path": asset["path"],
-                              "sha256": asset["sha256"], "integrity": integrity, "gates": gates})
+                              "sha256": asset["sha256"], "integrity": integrity, "gates": gates,
+                              "upload": {"status": asset["upload"].get("status"),
+                                         "last_error": asset["upload"].get("last_error")}
+                              if asset.get("upload") else None})
         return {"workflow": str(self.path), "name": data["name"], "target": data["target"], "region": data["region"],
                 "budget": {**data["budget"], "committed_credits": amount(committed),
                            "remaining_credits": amount(max(Decimal(0), credits(data["budget"]["limit_credits"]) - committed)),
                            "scope": "local reservations and observed charges; no provider-side spending cap"},
                 "jobs": [{"id": j["id"], "operation": j["operation"], "status": j["status"], "task_id": j["task_id"],
-                          "max_credits": j["max_credits"], "charged_credits": j["charged_credits"], "output_assets": j["output_assets"]}
+                          "max_credits": j["max_credits"], "charged_credits": j["charged_credits"], "output_assets": j["output_assets"],
+                          "last_error": j.get("last_error")}
                          for j in data["jobs"].values()],
                 "artifacts": artifacts,
                 "runtime_status": "See revision-specific SDK/client evidence; job completion is not avatar certification"}
@@ -361,12 +400,15 @@ class Workflow:
                 _unchanged(asset)
             except APIError as exc:
                 asset["upload"]["status"] = "unknown" if isinstance(exc, SubmissionUncertain) else "rejected"
+                asset["upload"]["last_error"] = _diagnostic("upload", "upload_file", exc)
                 self._save(data)
-                raise
-            except BaseException:
+                raise _safe_api_error(exc, asset["upload"]["last_error"]) from None
+            except BaseException as exc:
                 asset["upload"]["status"] = "unknown"
+                asset["upload"]["last_error"] = _diagnostic("upload", "upload_file", exc)
                 self._save(data)
-                raise WorkflowError("Upload outcome is unknown; no automatic retry") from None
+                raise WorkflowError(asset["upload"]["last_error"]["message"] +
+                                    "; upload outcome is unknown, no automatic retry") from None
             asset["upload"] = {"status": "uploaded", "file_token": token, "sha256": asset["sha256"], "uploaded_at": now()}
             self._save(data)
             return {"status": "uploaded", "asset": asset_id}
@@ -477,15 +519,18 @@ class Workflow:
                     job["status"] = "unknown_submission"
                 else:
                     job["status"] = "rejected"
+                job["last_error"] = _diagnostic("submit", job["operation"], exc)
                 job["events"].append({"event": job["status"], "at": now()})
                 self._save(data)
-                return {"id": job_id, "status": job["status"], "task_id": None}
+                return {"id": job_id, "status": job["status"], "task_id": None, "last_error": job["last_error"]}
             except BaseException as exc:
                 job["status"] = "unknown_submission"
+                job["last_error"] = _diagnostic("submit", job["operation"], exc)
                 self._save(data)
                 if isinstance(exc, (KeyboardInterrupt, SystemExit)):
                     raise
-                raise WorkflowError("Submission outcome is unknown; reservation retained, no automatic retry") from None
+                raise WorkflowError(job["last_error"]["message"] +
+                                    "; submission outcome is unknown, reservation retained, no automatic retry") from None
             job["task_id"] = task_id
             job["status"] = "submitted"
             self._save(data)
@@ -516,11 +561,32 @@ class Workflow:
                 if job["status"] == "submitting":
                     job["status"] = "unknown_submission"
                     self._save(data)
-                return {"id": job_id, "status": job["status"], "task_id": None, "request_sent": False}
-            task = client.get_task(job["task_id"])
+                return {"id": job_id, "status": job["status"], "task_id": None, "request_sent": False,
+                        "last_error": job.get("last_error")}
+            try:
+                task = client.get_task(job["task_id"])
+            except APIError as exc:
+                job["last_error"] = _diagnostic("poll", job["operation"], exc)
+                self._save(data)
+                raise _safe_api_error(exc, job["last_error"]) from None
+            except BaseException as exc:
+                job["last_error"] = _diagnostic("poll", job["operation"], exc)
+                self._save(data)
+                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                    raise
+                raise WorkflowError(job["last_error"]["message"]) from None
             if task.get("task_id") != job["task_id"] or task.get("status") not in TERMINAL | {"queued", "running"}:
                 raise WorkflowError("Task query returned an unexpected ID or status")
             job["status"] = task["status"]
+            if job["status"] in ("failed", "cancelled"):
+                diagnostic = _diagnostic("task", job["operation"], task.get("error"))
+                previous_error = job.get("last_error") or {}
+                # A later empty/generic reply must not erase useful evidence or
+                # make an old diagnosis look newly observed.
+                if previous_error.get("stage") != "task" or any(
+                        diagnostic[field] is not None and diagnostic[field] != previous_error.get(field)
+                        for field in ("http_status", "provider_code")):
+                    job["last_error"] = diagnostic
             progress = task.get("progress")
             if type(progress) is int and 0 <= progress <= 100:
                 job["progress"] = progress
@@ -560,7 +626,8 @@ class Workflow:
                         job["output_assets"].append(asset_id)
                         self._save(data)
             return {"id": job_id, "status": job["status"], "task_id": job["task_id"],
-                    "charged_credits": job["charged_credits"], "output_assets": job["output_assets"], "budget_blocked": data["budget"]["blocked"]}
+                    "charged_credits": job["charged_credits"], "output_assets": job["output_assets"], "budget_blocked": data["budget"]["blocked"],
+                    "last_error": job.get("last_error")}
 
     def adopt_output(self, job_id, path, note):
         note = text(note, "output provenance note")

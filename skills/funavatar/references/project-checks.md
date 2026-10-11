@@ -45,6 +45,8 @@ Exit status: `0` means no reported static fail/review finding, `1` means a fail,
 
 Keep reports with the source revision/hash, collector version and scope. Reuse a report only while its source, target and relevant settings remain unchanged. Fixtures and helper tests establish the helper's behavior, not the real avatar's condition.
 
+Platform scope: `both` means PC plus Android/Quest. These schema-version-1 reports and debug plans do not implement an iOS target. Keep requested iOS checks in a separate avatar-contract evidence record; do not change their target to Android to make the helper accept them. A report without `target` leaves the target unknown.
+
 ## Connect observations to a 3D workflow
 
 When a tracked 3D asset is under inspection, attach the native report as evidence for the precise revision/hash in the separate `workflow.json` ledger. Do not add ledger, job, cost or lineage fields to these strict schema-version-1 reports, and do not pass a workflow ledger to `project-check`. Missing observations remain unknown in both routes.
