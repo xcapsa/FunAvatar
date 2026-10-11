@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "version": "0.1.0",
+  "managed": {
+    "SKILL.md": "468023894460e75a2fd9f70fb9454901b3e93434a070a6c0c191e529a1a6b664",
+    "agents/openai.yaml": "4a98d1776497a19d9f02310f5ac9e2568283e70df70c21005edce695f028dd70",
+    "references/prompt-recipes.md": "1efab01428eddfa8665b891aef0d364fd164be0cd861413013924229d80d8398",
+    "references/review-rubric.md": "d2076779c13cf7146d71df6391c24ac6fd783731f6a65d54c28c7b08c7a7c43d",
+    "references/technical-handoff.md": "d28be601615d6f233a19b3f56e9879c0ccf2b92963dda4d0258813c5ac22cac6",
+    "scripts/funavatar.py": "c1c6840997fa5d394aecd0b6e19c918f7e95f21c97167ef5fc361896aff1918c"
+  }
+}

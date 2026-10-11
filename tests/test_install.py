@@ -66,6 +66,64 @@ class InstallationTests(unittest.TestCase):
             INSTALLER.install("codex", self.home, self.source)
         self.assertTrue(destination.is_symlink())
 
+    def test_update_preserves_previous_versions_and_writes_matching_receipts(self):
+        destinations = INSTALLER.install("both", self.home, self.source)
+        previous = {path: INSTALLER.snapshot(path) for path in destinations}
+        (self.source / "SKILL.md").write_text("updated skill\n", encoding="utf-8")
+        (self.source / "VERSION").write_text("0.2.0\n", encoding="utf-8")
+        INSTALLER.install("both", self.home, self.source, update=True)
+        backups = list((self.home / ".local/share/funavatar/backups").iterdir())
+        self.assertEqual(len(backups), 2)
+        self.assertTrue(all(INSTALLER.snapshot(path) in previous.values() for path in backups))
+        for destination in destinations:
+            self.assertEqual(INSTALLER.snapshot(destination), INSTALLER.snapshot(self.source))
+            receipt = INSTALLER.json.loads((destination / INSTALLER.RECEIPT).read_text())
+            self.assertEqual(receipt["version"], "0.2.0")
+
+    def test_local_edit_stops_both_updates_without_replacement(self):
+        destinations = INSTALLER.install("both", self.home, self.source)
+        (destinations[1] / "SKILL.md").write_text("personal customization\n", encoding="utf-8")
+        previous = {path: INSTALLER.snapshot(path) for path in destinations}
+        (self.source / "SKILL.md").write_text("new release\n", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            INSTALLER.install("both", self.home, self.source, update=True)
+        self.assertEqual({path: INSTALLER.snapshot(path) for path in destinations}, previous)
+        self.assertFalse((self.home / ".local/share/funavatar/backups").exists())
+
+    def test_untracked_customization_is_preserved(self):
+        destinations = INSTALLER.install("codex", self.home, self.source)
+        (destinations[0] / "personal-notes.md").write_text("Keep this", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            INSTALLER.install("codex", self.home, self.source, update=True)
+        self.assertEqual((destinations[0] / "personal-notes.md").read_text(), "Keep this")
+
+    def test_recognized_legacy_installation_can_update_without_receipt(self):
+        destination = self.home / ".agents/skills/funavatar"
+        destination.parent.mkdir(parents=True)
+        INSTALLER.shutil.copytree(self.source, destination)
+        old_snapshot = INSTALLER.snapshot(destination)
+        (self.source / "SKILL.md").write_text("new release\n", encoding="utf-8")
+        with patch.object(INSTALLER, "known_baselines", return_value=[old_snapshot]):
+            INSTALLER.install("codex", self.home, self.source, update=True)
+        self.assertEqual(INSTALLER.snapshot(destination), INSTALLER.snapshot(self.source))
+
+    def test_second_cutover_failure_restores_both_old_versions(self):
+        destinations = INSTALLER.install("both", self.home, self.source)
+        previous = {path: INSTALLER.snapshot(path) for path in destinations}
+        (self.source / "SKILL.md").write_text("new release\n", encoding="utf-8")
+        real_rename = Path.rename
+
+        def fail_second_stage(path, target):
+            if path.name == "funavatar" and path.parent.name.startswith(".funavatar-install-") and target == destinations[1]:
+                raise OSError("simulated second cutover failure")
+            return real_rename(path, target)
+
+        with patch.object(Path, "rename", fail_second_stage):
+            with self.assertRaises(OSError):
+                INSTALLER.install("both", self.home, self.source, update=True)
+        self.assertEqual({path: INSTALLER.snapshot(path) for path in destinations}, previous)
+        self.assertEqual(list(self.home.rglob(".funavatar-install-*")), [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
 interface:
   display_name: "FunAvatar"
-  short_description: "Consistent avatar concepts and modeling references"
-  default_prompt: "Use $funavatar to turn my idea or reference into consistent avatar concept sheets with visual review."
+  short_description: "Avatar concepts, project inspection and runtime debug"
+  default_prompt: "Use $funavatar to create reviewed avatar references or inspect and debug my existing avatar project with clear test evidence."

@@ -1,6 +1,6 @@
 # Visual review rubric
 
-Review actual pixels against the brief and attached reference. A successful file check proves that an image can be read at the requested size; it does not satisfy this rubric.
+Review actual pixels against the brief and attached reference. The helper's file check inspects container/header structure and dimensions without decoding pixels; it does not satisfy this rubric.
 
 Use `pass`, `needs repair`, or `not assessed` for each relevant category. Record concrete evidence, such as “right-side view loses the left shoulder pouch” or “front wrist has a sixth digit.” Do not infer invisible details.
 
@@ -31,3 +31,5 @@ Final status should distinguish:
 - **Concept delivered:** visual idea exists, with any modeling ambiguity stated.
 - **Modeling reference reviewed:** relevant visual checks passed or remaining limitations are explicit.
 - **3D/runtime status untested:** mandatory for image-only output; never infer it from a polished reference sheet.
+
+If a 3D conversion or imported model is supplied, also apply the [image-to-3D fidelity gate](technical-handoff.md#image-to-3d-fidelity-gate). A passing concept review does not approve its reconstruction. Compare actual model views before rigging/effects; retain reference fidelity as unverified without that evidence.

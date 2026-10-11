@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Prepare local avatar image briefs and inspect image containers. Python 3.10+."""
+"""Prepare image briefs, inspect containers and review supplied avatar facts. Python 3.10+."""
 
 from __future__ import annotations
 
 import argparse
 import binascii
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -426,6 +427,13 @@ def parser() -> argparse.ArgumentParser:
     check = commands.add_parser("check", help="Inspect local image files; visual anatomy needs manual review")
     check.add_argument("images", nargs="+", metavar="IMAGE")
     check.add_argument("--min-long-edge", type=positive_integer, default=DEFAULT_MIN_LONG_EDGE)
+    project = commands.add_parser("project-check", help="Check supplied native JSON reports; runtime remains unverified (exit 1 fail, 3 review, 2 invalid)")
+    project.add_argument("reports", nargs="+", metavar="REPORT")
+    project.add_argument("--out", help="New JSON output file; never overwrite")
+    debug = commands.add_parser("debug-plan", help="Write symptom-specific steps and unverified evidence checklist; no tests executed")
+    debug.add_argument("--symptom", required=True, choices=("effects", "remote", "mobile", "deformation", "pixelation", "motion", "fidelity"))
+    debug.add_argument("--platform", choices=("pc", "android", "both"), default="both")
+    debug.add_argument("--out", required=True, help="Local directory for debug-plan.json and debug-plan.md")
     return result
 
 
@@ -434,12 +442,23 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "plan":
             report, code = create_plan(args), 0
-        else:
+        elif args.command == "check":
             report, code = check_images(args)
+        else:
+            spec = importlib.util.spec_from_file_location("funavatar_project_checks", Path(__file__).with_name("project_checks.py"))
+            helpers = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(helpers)
+            if args.command == "project-check":
+                report, code = helpers.project_check(args.reports, args.out)
+            else:
+                report, code = helpers.debug_plan(args.symptom, args.out, args.platform), 0
     except (OSError, ValueError) as exc:
         print(f"funavatar: {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    if args.command in ("project-check", "debug-plan"):
+        print(json.dumps(report, ensure_ascii=False, separators=(",", ":")))
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
     return code
 
 

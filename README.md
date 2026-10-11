@@ -1,69 +1,95 @@
 # FunAvatar
 
-Turn an idea or character reference into consistent avatar concept sheets with Codex or Claude Code. FunAvatar combines a reusable skill, a small offline planning/checking tool, and visual review guidance for a Blender → Unity → VRChat handoff.
+FunAvatar supports three avatar workflows in Codex and Claude Code: consistent **2D concept/reference art**, **inspection of a supplied Blender or Unity project**, and **debugging concrete VRChat avatar defects**. It combines a reusable skill, compact native collectors and an offline helper.
 
-The output is **2D reference art**. A modeler still creates the mesh, UVs, materials and rig; the installed VRChat SDK validates the finished avatar.
+A concept sheet is modeling guidance. A static report is inspection evidence. SDK validation, a successful build and observed client behavior each need their own checks; FunAvatar does not turn an image into a rigged model or upload an avatar automatically.
 
-## Install
+## Install or update
 
-Requires Python 3.10 or newer. No Python packages, API keys or background services are needed for installation or the helper tool.
+Requires Python 3.10+. Installation and the offline helper use the standard library and need no API keys or background services.
 
-```bash
+```sh
 git clone https://github.com/xcapsa/FunAvatar.git
 cd FunAvatar
 python3 install.py --target both
 ```
 
-This copies the skill to `~/.agents/skills/funavatar` for Codex and `~/.claude/skills/funavatar` for Claude Code. Existing installations are preserved: the installer stops instead of replacing them. To uninstall, remove the corresponding `funavatar` folder. Installation does not change application settings.
+The installer copies the skill to `~/.agents/skills/funavatar` for Codex and `~/.claude/skills/funavatar` for Claude Code. Existing installations are preserved unless an update is requested:
 
-These local discovery locations follow the [official Codex skill guide](https://learn.chatgpt.com/docs/build-skills) and [Claude Code skill guide](https://code.claude.com/docs/en/skills). Claude Cowork and cloud sessions use account-enabled skills instead of the local personal folder; the release includes a separate `funavatar-skill.zip` for manual upload where supported.
+```sh
+python3 install.py --target both --update
+```
+
+Updates verify managed file hashes, recognize the original v0.1 installation, and refuse modified, unknown or untracked files and symlinks. Both targets are staged before replacement; if either replacement fails, both are rolled back. Backups remain outside skill discovery at `~/.local/share/funavatar/backups`. To uninstall, remove the corresponding installed `funavatar` folder. Installation changes no application settings.
+
+These discovery locations follow the [Codex skill guide](https://learn.chatgpt.com/docs/build-skills) and [Claude Code skill guide](https://code.claude.com/docs/en/skills). Cowork and cloud sessions use account-enabled skills; the portable `funavatar-skill.zip` can be uploaded manually where supported. Native collectors require their respective application and an authorized project.
 
 ## Use
 
-In Codex, invoke `$funavatar`. In Claude Code, invoke `/funavatar`. If a new skill does not appear, start a new session.
+Invoke `$funavatar` in Codex or `/funavatar` in Claude Code. Start a new session if the skill does not appear.
 
-Example request:
+> Use FunAvatar to create an Oculandia scientist from my reference: white coat, red hoodie and green goggles, transforming into a sloth. Preserve identity and outfit. Produce separate human, transformed and detail sheets. Use bounded design and modeling reviews where useful. Remove Odido branding.
 
-> Use FunAvatar to create an Oculandia character from my reference: a scientist in a white coat with a red hoodie and green goggles, who transforms into a sloth. Preserve his identity and outfit. Make separate human, transformed and detail sheets. Use multiple agents for art direction and technical review. Remove Odido branding.
+> Use FunAvatar to inspect my supplied avatar project and debug a toggle that works locally but not for other players. Reuse the existing setup, preserve unrelated work, and report local, mirror and remote proof separately.
 
-Codex uses its built-in image-generation tool when available. Claude uses an available connected image-generation tool. If the session has no image generator, FunAvatar prepares the brief and prompts and explains what still needs generating. It does not install a provider, spend API credit, or claim that prompts are images.
+Codex uses its built-in image generator when available. Claude uses an available connected image tool; without one, FunAvatar prepares the brief and prompts and says generation remains pending. It does not install a provider or spend credits to conceal that limitation. Oculandia branding is opt-in through the brief.
 
-## Offline helper
+The skill adapts the smallest-complete-change principle from Dietrich Gebert's [Ponytail](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md): inspect the project, reuse working components, prefer native features and compatible installed tools, then add a small fix if needed. It installs no global Ponytail hooks or settings and preserves validation.
+
+## Offline helper and native reports
 
 Create a brief and prompts:
 
-```bash
+```sh
 python3 skills/funavatar/scripts/funavatar.py plan \
   --name "L'Infissiologo" \
   --idea "Scientist with white coat, red hoodie, green goggles and two drills" \
-  --transformation "sloth" \
-  --brand "Oculandia" \
-  --out output/infissiologo
+  --transformation sloth --brand Oculandia --out output/infissiologo
 ```
 
-Add `--reference path/to/image.jpg` for each reference image. Planning preserves existing outputs. The helper does not generate images or contact any service.
+Repeat `--reference path/to/image.jpg` for reference images. `plan` preserves existing targets and does not generate images. Inspect image container/header structure, dimensions and SHA-256 with:
 
-Inspect image dimensions, file structure and checksums:
-
-```bash
+```sh
 python3 skills/funavatar/scripts/funavatar.py check \
   examples/infissiologo/human-turnaround.png --min-long-edge 1536
 ```
 
-Automated checks cannot judge anatomy, visual consistency, model topology or VRChat compatibility. The skill includes a separate visual review rubric.
+For a supplied project, collect only the observations needed:
+
+- Blender: run `skills/funavatar/scripts/blender_report.py` with Blender against the relevant `.blend` scene/root; it writes JSON without saving the source model.
+- Unity: copy `skills/funavatar/assets/unity/Editor/FunAvatarReport.cs` into the authorized project's `Assets/Editor/`, select its avatar root and use **Tools → FunAvatar → Export selected avatar observations**.
+
+See [project checks](skills/funavatar/references/project-checks.md) for exact collector commands, scope and limitations. Then inspect reports or create an unexecuted checklist:
+
+```sh
+python3 skills/funavatar/scripts/funavatar.py project-check \
+  output/blender-report.json output/unity-report.json --out output/project-check.json
+python3 skills/funavatar/scripts/funavatar.py debug-plan \
+  --symptom remote --platform both --out output/remote-debug
+```
+
+`project-check` accepts Blender/Unity reports and emits bounded static findings. A clean result still leaves runtime and reference fidelity unverified. `debug-plan` supports `effects`, `remote`, `mobile`, `deformation`, `pixelation`, `motion` and `fidelity`, writing JSON and Markdown with every check initially unexecuted. Existing output targets are preserved. The [runtime debug guide](skills/funavatar/references/runtime-debug.md) covers targeted reproduction, fixes and client proof.
+
+Image-to-3D work has a [fidelity gate](skills/funavatar/references/technical-handoff.md#image-to-3d-fidelity-gate) before rigging/effects: use provider-compatible isolated inputs, compare the actual model's silhouette and defining details with the approved reference, and measure height in engine units. A [Tripo profile](skills/funavatar/references/tripo.md) covers the user's Studio workflow, including HD Model versus Smart Mesh, retopology and export checks. Paid-plan access does not establish quality or justify using an entire decorative reference board as single-image input.
+
+## Compatibility and verification limits
+
+[VRChat's current Unity page](https://creators.vrchat.com/sdk/upgrade/current-unity-version/) specified **2022.3.22f1** when checked on 2026-10-11. Recheck before future project work. A newer installed editor does not prove VRChat support; do not migrate an avatar project to run a collector.
+
+No 3D model or Unity avatar project was supplied for this release's development checks. The development machine had Unity 6000.6 and no available Blender runtime. The C# collector compiled against the installed Unity assemblies; starting the Editor was blocked by an inactive license. Blender collector tests use an offline fixture. These checks do not certify execution in Unity 2022.3 or a real supported VRChat project, deformation, effect synchronization, PhysBones or native Android behavior. Those require the actual asset, SDK and relevant client/device tests.
 
 ## Included example
 
-[L'Infissiologo](examples/infissiologo/) is an Oculandia human character with a sloth transformation. The folder contains separate full-resolution sheets, the prompts used and review notes. Original source references and personal local paths are not included.
+[L'Infissiologo](examples/infissiologo/) is an Oculandia human character with a sloth transformation. It includes separate full-resolution sheets, prompts and review notes. Original source references and personal local paths are excluded.
 
 ![L'Infissiologo sloth transformation](examples/infissiologo/bradipo-turnaround.png)
 
-Download the installable skill and all example sheets from [Releases](https://github.com/xcapsa/FunAvatar/releases/latest). Actual image sizes are 1672 × 941 for each body sheet and 1536 × 1024 for details; no upscaling was used.
+The body sheets are 1672 × 941 and the detail sheet is 1536 × 1024; no upscaling was used. Published packages and sheets are available from [Releases](https://github.com/xcapsa/FunAvatar/releases/latest).
 
 ## Development
 
-```bash
+```sh
 python3 -m unittest discover -s tests -v
 ```
 
-The helper and installer use the Python standard library. Contributions should preserve reference identity, avoid destructive output replacement, and keep image-generation capability separate from 3D validation.
+Keep the entrypoint short and references on demand. Use relevant reports/diffs, reuse unchanged artifacts by hash, and delegate bounded independent checks when useful. These choices avoid duplicate work; they do not enforce a token budget or guarantee savings. Project experience cards retain source, versions, platform, preconditions, fix, proof and limitations within the user's authorized project scope.
