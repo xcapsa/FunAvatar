@@ -258,11 +258,13 @@ def _extract(package, folder, version):
                 raise UpdateError("unsafe_package_structure")
             seen, files, total = set(), set(), 0
             for entry in entries:
-                name = entry.filename
+                # ZipInfo normalizes Windows separators and truncates NULs.
+                # Validate the actual stored name before trusting that view.
+                name = entry.orig_filename
                 path = PurePosixPath(name)
                 parts = name.rstrip("/").split("/")
                 mode = entry.external_attr >> 16
-                if (not re.fullmatch(r"[A-Za-z0-9_./-]+", name) or path.is_absolute()
+                if (name != entry.filename or not re.fullmatch(r"[A-Za-z0-9_./-]+", name) or path.is_absolute()
                         or any(part in ("", ".", "..") or part.endswith(".") for part in parts)
                         or any(re.fullmatch(r"(?i)(con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\..*)?", part) for part in parts)
                         or parts[0] != "funavatar" or (len(parts) > 1 and parts[1] not in top_level)

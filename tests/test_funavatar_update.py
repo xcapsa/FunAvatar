@@ -36,7 +36,15 @@ def package_bytes(version="0.5.1", extras=(), overrides=None):
         for name, content in files.items():
             archive.writestr(name, content)
         for name, content in extras:
-            archive.writestr(name, content)
+            if isinstance(name, str):
+                entry = zipfile.ZipInfo(name)
+                # Keep deliberately malformed wire names on Windows too;
+                # ZipInfo.__init__ otherwise repairs backslashes in the test.
+                entry.filename = name
+                entry.compress_type = zipfile.ZIP_DEFLATED
+            else:
+                entry = name
+            archive.writestr(entry, content)
     return output.getvalue()
 
 
@@ -232,6 +240,21 @@ class UpdaterTests(unittest.TestCase):
                 result = self.assert_unchanged_failure(ReleaseFixture(package=package_bytes(extras=[(name, "unsafe")])) )
                 self.assertEqual(result["reason"], "unsafe_package_structure")
         self.assertFalse((self.root / "outside").exists())
+
+    def test_zip_stored_names_are_checked_before_platform_normalization(self):
+        package = package_bytes(extras=[("funavatar/scripts\\escape.py", "unsafe")])
+        real_zip = zipfile.ZipFile
+
+        class NormalizingZipFile(real_zip):
+            def infolist(self):
+                entries = super().infolist()
+                for entry in entries:
+                    entry.filename = entry.filename.replace("\\", "/")
+                return entries
+
+        with patch.object(updater.zipfile, "ZipFile", NormalizingZipFile):
+            result = self.assert_unchanged_failure(ReleaseFixture(package=package))
+        self.assertEqual(result["reason"], "unsafe_package_structure")
 
     def test_zip_symlink_and_high_expansion_are_refused_without_extraction(self):
         entry = zipfile.ZipInfo("funavatar/scripts/link.py")
