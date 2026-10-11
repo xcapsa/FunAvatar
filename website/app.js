@@ -49,8 +49,10 @@
     viewport.style.minHeight = `${Math.ceil(maximum)}px`;
   }
 
-  function updateIndicator() {
+  function updateIndicator(animate = true) {
     if (active < 0) return;
+    // Width changes must snap; interpolating old geometry can widen the page.
+    indicator.style.transition = animate ? "" : "none";
     const listBounds = tabList.getBoundingClientRect();
     const tabBounds = tabs[active].getBoundingClientRect();
     indicator.style.width = `${tabBounds.width}px`;
@@ -201,7 +203,7 @@
     ++revision;
     settle();
     reserveMobileHeight();
-    updateIndicator();
+    updateIndicator(false);
   }
   window.addEventListener("resize", () => resizeSlides(), { passive: true });
   compact.addEventListener("change", () => resizeSlides(true));
