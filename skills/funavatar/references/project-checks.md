@@ -1,6 +1,6 @@
 # Local planning and project checks
 
-The offline helper uses Python 3.10+ and the standard library. It does not generate images, execute Blender/Unity, install packages, contact services, validate an SDK build or certify runtime behavior. Commands below run from the `funavatar` skill directory; quote paths containing spaces. Use new output names to preserve earlier artifacts.
+The offline helper uses Python 3.10+ and the standard library. It does not generate images, execute Blender/Unity, install packages, contact services, validate an SDK build or certify runtime behavior. The optional Tripo adapter is a separate, explicitly authorized online route described in [workflow-3d.md](workflow-3d.md). Commands below run from the `funavatar` skill directory; quote paths containing spaces. Use new output names to preserve earlier artifacts.
 
 ## Concept helper
 
@@ -44,3 +44,9 @@ Exit status: `0` means no reported static fail/review finding, `1` means a fail,
 `debug-plan --symptom fidelity|effects|remote|mobile|deformation|pixelation|motion --out DIR [--platform pc|android|both]` writes `debug-plan.json` and `debug-plan.md`, defaulting to `both`. It preserves existing output targets. Plans start with `executed: false` and `status: not_verified`; no check has run. `project-check` also leaves runtime `reference_fidelity` as `not_verified`; static counts cannot judge resemblance. Follow [runtime-debug.md](runtime-debug.md) for evidence and targeted fixes.
 
 Keep reports with the source revision/hash, collector version and scope. Reuse a report only while its source, target and relevant settings remain unchanged. Fixtures and helper tests establish the helper's behavior, not the real avatar's condition.
+
+## Connect observations to a 3D workflow
+
+When a tracked 3D asset is under inspection, attach the native report as evidence for the precise revision/hash in the separate `workflow.json` ledger. Do not add ledger, job, cost or lineage fields to these strict schema-version-1 reports, and do not pass a workflow ledger to `project-check`. Missing observations remain unknown in both routes.
+
+The workflow gates use `pass`, `needs_repair` or `not_assessed` for the specific check and asset revision. Static report results inform native investigation; they cannot by themselves pass reference fidelity, deformation, SDK or client gates. Preserve report evidence for earlier revisions, and invalidate affected downstream checks after geometry, materials, target or relevant settings change. Follow [workflow-3d.md](workflow-3d.md) only when creating or updating the production ledger.
