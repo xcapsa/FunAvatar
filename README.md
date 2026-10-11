@@ -1,8 +1,8 @@
 # FunAvatar
 
-FunAvatar supports three avatar workflows in Codex and Claude Code: consistent **2D concept/reference art**, **inspection of a supplied Blender or Unity project**, and **debugging concrete VRChat avatar defects**. It combines a reusable skill, compact native collectors and an offline helper.
+FunAvatar supports four avatar workflows in Codex and Claude Code: consistent **2D concept/reference art**, **tracked 3D production through Tripo**, **inspection of a supplied Blender or Unity project**, and **debugging concrete VRChat avatar defects**. It combines a reusable skill, compact native collectors and an offline helper.
 
-A concept sheet is modeling guidance. A static report is inspection evidence. SDK validation, a successful build and observed client behavior each need their own checks; FunAvatar does not turn an image into a rigged model or upload an avatar automatically.
+A concept sheet is modeling guidance. A static report is inspection evidence. SDK validation, a successful build and observed client behavior each need their own checks. A completed Tripo task does not certify a rig or VRChat behavior, and FunAvatar does not upload an avatar automatically.
 
 ## Install or update
 
@@ -35,6 +35,32 @@ Invoke `$funavatar` in Codex or `/funavatar` in Claude Code. Start a new session
 Codex uses its built-in image generator when available. Claude uses an available connected image tool; without one, FunAvatar prepares the brief and prompts and says generation remains pending. It does not install a provider or spend credits to conceal that limitation. Oculandia branding is opt-in through the brief.
 
 The skill adapts the smallest-complete-change principle from Dietrich Gebert's [Ponytail](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md): inspect the project, reuse working components, prefer native features and compatible installed tools, then add a small fix if needed. It installs no global Ponytail hooks or settings and preserves validation.
+
+## Try the 3D preview without spending credits
+
+The 3D route adds a local `workflow.json` ledger, an optional Tripo API adapter, resumable task queries, revision hashes and per-job credit reservations. Installing the skill and preparing a plan do not consume Tripo credits. Read the [3D workflow](skills/funavatar/references/workflow-3d.md) for commands, recovery and accounting rules.
+
+Use Python 3.10+ on **macOS or Linux** for the Tripo workflow. It uses Unix `fcntl` process locks; native Windows is unsupported. A Windows user may use a suitable Linux environment only when their host can execute the helper there. The offline concept helper and skill text are separate from this restriction.
+
+For this preview branch, clone and select it before installation:
+
+```sh
+git clone --branch codex/tripo-3d-trial https://github.com/xcapsa/FunAvatar.git
+cd FunAvatar
+python3 install.py --target claude
+```
+
+Use `--target codex` for Codex or `--target both` for both hosts. For an existing unchanged installation, add `--update`; the installer refuses to replace local customizations. Start a new session, then invoke `/funavatar` in Claude Code or `$funavatar` in Codex with:
+
+> Facciamo una prova 3D con FunAvatar. Verifica prima il collegamento Tripo tramite una richiesta di sola lettura al saldo API. Prepara una singola generazione di un esploratore stilizzato in posa A, senza accessori sottili. Mostrami modello/versione, opzioni, costo previsto in crediti, fonte e data del prezzo, limite proposto e saldo disponibile. Non caricare file e non inviare generazioni finché non approvo esplicitamente il costo e il budget. Se mancano accesso o credenziali, dimmelo e prepara solo il necessario in locale. Dopo l'approvazione salva il task ID; se interrompiamo, riprendi lo stesso job senza inviarne un altro. Dimmi separatamente quali controlli sul modello e su VRChat restano da fare.
+
+Configure `TRIPO_API_KEY` privately in the helper's execution environment. Do not paste the key into a chat, public issue, payload, command argument or ledger. A Tripo Studio subscription does not establish API credit access. The API account balance is separate from the budget authorized for this workflow.
+
+Check [current official API pricing](https://developers.tripo3d.ai/en/pricing) for the selected model/options before approving a cost. The helper records a reviewed estimate/ceiling; it does not receive a provider price quote or impose a provider-side maximum charge. Unknown or uncertain costs stay reserved. Ambiguous submissions and detected overruns block new submissions. A successful read-only connection check does not establish that a paid generation or its exported model works.
+
+Claude Cowork and cloud hosts need a manual portable-skill import where supported; installing into `~/.claude/skills` applies to Claude Code. A portable archive can supply the instructions, but the 3D commands still need Python, Unix locking, network access and a private way to provide the API key. Do not promise the same execution capability in every host. The published v0.2.0 archive predates this preview and has no Tripo job adapter.
+
+For feedback, report your OS/host, selected operation and model, expected result, actual result and which stage stopped. Share the task ID or sanitized cost evidence only when appropriate; exclude API keys, personal account data, local private paths and model files you have not chosen to share.
 
 ## Offline helper and native reports
 

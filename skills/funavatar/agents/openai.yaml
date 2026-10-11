@@ -1,4 +1,4 @@
 interface:
   display_name: "FunAvatar"
-  short_description: "Avatar concepts, project inspection and runtime debug"
-  default_prompt: "Use $funavatar to create reviewed avatar references or inspect and debug my existing avatar project with clear test evidence."
+  short_description: "Avatar concepts, tracked 3D and runtime debug"
+  default_prompt: "Use $funavatar to create reviewed avatar references, track authorized 3D production or inspect and debug my existing avatar project with clear test evidence."
