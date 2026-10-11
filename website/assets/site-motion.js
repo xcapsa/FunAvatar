@@ -10,6 +10,7 @@
   function createMotion() {
     if (typeof window.IntersectionObserver !== 'function' || typeof window.requestAnimationFrame !== 'function') return null;
     const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const lightweight = window.matchMedia('(max-width: 699px), (pointer: coarse)');
     const removers = [];
     const decorated = [];
     const revealTargets = [];
@@ -47,7 +48,7 @@
         const viewport = window.innerHeight || root.clientHeight;
         const maximum = Math.max(1, root.scrollHeight - viewport);
         scrollProgress = clamp((window.scrollY || root.scrollTop || 0) / maximum, 0, 1);
-        sectionPositions = sections.map(section => {
+        sectionPositions = lightweight.matches ? [] : sections.filter(section => section.matches('.method, .start')).map(section => {
           const bounds = section.getBoundingClientRect();
           return {
             section,
@@ -60,7 +61,7 @@
         const pointer = pendingPointer;
         pendingPointer = null;
         const transitioning = pointer.node.closest('.path-slides.is-transitioning');
-        if (fine.matches && !transitioning) {
+        if (fine.matches && !lightweight.matches && !transitioning) {
           const bounds = pointer.node.getBoundingClientRect();
           const x = clamp((pointer.x - bounds.left - bounds.width / 2) / Math.max(1, bounds.width / 2), -1, 1);
           const y = clamp((pointer.y - bounds.top - bounds.height / 2) / Math.max(1, bounds.height / 2), -1, 1);
@@ -186,7 +187,7 @@
         node.classList.add(className);
         decorated.push({ node, className });
         listen(node, 'pointermove', event => {
-          if (!fine.matches || event.pointerType === 'touch' || document.hidden) return;
+          if (!fine.matches || lightweight.matches || event.pointerType === 'touch' || document.hidden) return;
           pendingPointer = { node, kind, x: event.clientX, y: event.clientY };
           requestUpdate();
         }, { passive: true });
@@ -230,6 +231,7 @@
         fine.addListener(onPointerPreference);
         removers.push(() => fine.removeListener(onPointerPreference));
       }
+      listen(lightweight, 'change', () => { onPointerPreference(); onScroll(); });
       root.classList.add('site-motion-enabled');
       requestUpdate();
       return { destroy };

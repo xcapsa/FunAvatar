@@ -8,6 +8,7 @@
   if (!tabs.length || panels.some(panel => !panel)) return;
 
   const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const compact = window.matchMedia("(max-width: 699px), (pointer: coarse)");
   const viewport = document.createElement("div");
   viewport.className = "path-slides";
   tabList.after(viewport);
@@ -26,6 +27,27 @@
   let revision = 0;
   let animations = [];
   let swipe = null;
+  let measuredWidth = 0;
+
+  function reserveMobileHeight() {
+    viewport.style.minHeight = "";
+    if (!compact.matches) return;
+    let maximum = 0;
+    // One measurement per width change avoids animating page layout on every frame.
+    panels.forEach(panel => {
+      const hidden = panel.hidden;
+      const style = panel.getAttribute("style");
+      panel.hidden = false;
+      panel.style.position = "absolute";
+      panel.style.width = "100%";
+      panel.style.visibility = "hidden";
+      maximum = Math.max(maximum, panel.getBoundingClientRect().height);
+      panel.hidden = hidden;
+      if (style === null) panel.removeAttribute("style");
+      else panel.setAttribute("style", style);
+    });
+    viewport.style.minHeight = `${Math.ceil(maximum)}px`;
+  }
 
   function updateIndicator() {
     if (active < 0) return;
@@ -60,7 +82,7 @@
     const oldIndex = active;
     const outgoing = panels[oldIndex];
     const incoming = panels[index];
-    const fromHeight = viewport.getBoundingClientRect().height;
+    const fromHeight = compact.matches ? 0 : viewport.getBoundingClientRect().height;
     const token = ++revision;
     settle();
     // Move focus before any outgoing panel becomes inert or hidden.
@@ -95,9 +117,8 @@
     // from the accessibility tree and cannot receive keyboard focus.
     outgoing.hidden = false;
     outgoing.classList.add("is-exiting-slide");
-    viewport.style.height = `${fromHeight}px`;
+    if (!compact.matches) viewport.style.height = `${fromHeight}px`;
     viewport.classList.add("is-transitioning");
-    const toHeight = incoming.getBoundingClientRect().height;
     const duration = 520;
     const easing = "cubic-bezier(.22, 1, .36, 1)";
     const leaving = outgoing.animate([
@@ -108,10 +129,12 @@
       { opacity: 0, transform: `translate3d(${direction * 68}px,7px,0) scale(.985)` },
       { opacity: 1, transform: "translate3d(0,0,0) scale(1)" }
     ], { duration, easing, fill: "both" });
-    const resizing = viewport.animate([
-      { height: `${fromHeight}px` }, { height: `${toHeight}px` }
-    ], { duration, easing, fill: "both" });
-    animations = [leaving, arriving, resizing];
+    animations = [leaving, arriving];
+    if (!compact.matches) {
+      animations.push(viewport.animate([
+        { height: `${fromHeight}px` }, { height: `${incoming.getBoundingClientRect().height}px` }
+      ], { duration, easing, fill: "both" }));
+    }
     Promise.allSettled(animations.map(animation => animation.finished)).then(() => {
       if (token === revision) settle();
     });
@@ -171,11 +194,22 @@
     activate(active + direction, { hash: true, direction });
   }, { passive: true });
   window.addEventListener("pointercancel", () => { swipe = null; }, { passive: true });
-  window.addEventListener("resize", () => { ++revision; settle(); updateIndicator(); }, { passive: true });
+  function resizeSlides(force = false) {
+    const width = tabList.clientWidth;
+    if (!force && width === measuredWidth) return;
+    measuredWidth = width;
+    ++revision;
+    settle();
+    reserveMobileHeight();
+    updateIndicator();
+  }
+  window.addEventListener("resize", () => resizeSlides(), { passive: true });
+  compact.addEventListener("change", () => resizeSlides(true));
   preference.addEventListener("change", () => { ++revision; settle(); });
   document.documentElement.classList.add("js");
   const initial = tabs.findIndex(tab => tab.hash === window.location.hash);
   activate(initial < 0 ? 0 : initial);
+  resizeSlides(true);
   window.addEventListener("hashchange", () => {
     const matching = tabs.findIndex(tab => tab.hash === window.location.hash);
     if (matching >= 0) activate(matching);

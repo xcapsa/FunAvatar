@@ -116,6 +116,9 @@
 @media (max-width: 359px) {
   .avatar-build-status { max-width: 40%; font-size: 6px; }
 }
+@media (pointer: coarse) {
+  .avatar-replay, .avatar-pause { min-height: 44px; min-width: 44px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .avatar-stage::before, .avatar-build-canvas, .avatar-living-face { transition: none; }
   .avatar-face-art { transform: none !important; }

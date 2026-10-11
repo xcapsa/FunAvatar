@@ -53,7 +53,6 @@ h1 em { color: var(--lime); letter-spacing: -.075em; }
 .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 27px; margin-top: 34px; }
 .button { display: inline-flex; justify-content: space-between; align-items: center; gap: 36px; min-height: 56px; padding: 14px 24px; font-size: 14px; line-height: 1.3; font-weight: 700; transition: transform .18s ease, background-color .18s ease; }
 .button > span { font-size: 24px; font-weight: 400; line-height: .9; }
-.button:hover { transform: translateY(-3px); }
 .button-lime { color: var(--ink); background: var(--lime); }
 .button-lime:hover { background: #e3ff9b; }
 .button-dark { color: var(--paper); background: var(--ink); }
@@ -90,7 +89,7 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
 .path-tab > span:first-child { font-size: 11px; letter-spacing: 0; font-weight: 400; color: #555b5d; }
 .path-tab .tab-arrow { margin-left: auto; font-size: 27px; font-weight: 400; transform: rotate(45deg); opacity: .4; transition: transform .2s ease; }
 .path-tab.is-active { border-color: var(--ink); }
-.path-tab.is-active .tab-arrow, .path-tab:hover .tab-arrow { transform: rotate(0); opacity: 1; }
+.path-tab.is-active .tab-arrow { transform: rotate(0); opacity: 1; }
 .path-tab + .path-tab { padding-left: 30px; }
 .path-panel { padding-top: 58px; display: grid; grid-template-columns: .35fr 1.35fr .9fr; gap: 35px; }
 .path-panel + .path-panel { margin-top: 60px; padding-top: 60px; border-top: 1px solid var(--rule-light); }
@@ -257,7 +256,7 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
   .brand img { width: 35px; height: 35px; }
   .header-link { order: 2; margin-left: auto; border-left: 0; padding-left: 0; font-size: 12px; gap: 16px; }
   .main-nav { order: 3; width: 100%; margin: 3px 0 0; font-size: 11px; gap: 23px; padding-bottom: 8px; }
-  .main-nav a:last-child { display: inline; }
+  .main-nav a:last-child { display: inline-flex; }
   .hero { grid-template-columns: 1fr; padding-top: 50px; }
   .hero .eyebrow { font-size: 9px; margin-bottom: 24px; }
   h1 { font-size: clamp(55px, 11.4vw, 79px); line-height: .99; letter-spacing: -.075em; }
@@ -280,9 +279,9 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
   .section-heading { display: block; }
   .section-heading > p:last-child { margin-top: 26px; max-width: 440px; font-size: 15px; padding-bottom: 0; }
   .path-tabs { margin-top: 36px; }
-  .path-tab { min-height: 71px; gap: 7px; font-size: 13px; letter-spacing: -.035em; padding-right: 8px; flex-wrap: wrap; align-content: center; line-height: 1.2; }
-  .path-tab > span:first-child { width: 100%; font-size: 9px; }
-  .path-tab .tab-arrow { font-size: 18px; margin-left: auto; }
+  .path-tab { min-height: 71px; display: block; font-size: 13px; letter-spacing: -.035em; padding-block: 15px; padding-right: 8px; line-height: 1.2; }
+  .path-tab > span:first-child { display: block; font-size: 9px; margin-bottom: 8px; }
+  .path-tab .tab-arrow { position: absolute; top: 12px; right: 8px; font-size: 18px; }
   .path-tab + .path-tab { padding-left: 13px; }
   .path-panel, .js .path-panel + .path-panel { padding-top: 35px; grid-template-columns: 1fr; gap: 30px; }
   .panel-main .eyebrow { font-size: 9px; margin-bottom: 15px; }
@@ -334,7 +333,17 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
   .footer-top { padding-block: 32px; flex-wrap: wrap; gap: 23px; }
   .footer-top > p { font-size: 13px; margin: 0 0 0 auto; }
   .footer-top > .text-link { font-size: 11px; }
-  .footer-bottom { align-items: flex-start; flex-direction: column; justify-content: flex-start; gap: 13px; padding-block: 25px; font-size: 9px; }
+  .footer-bottom { align-items: flex-start; flex-direction: column; justify-content: flex-start; gap: 7px; padding-block: 25px; font-size: 11px; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover { transform: translateY(-3px); }
+  .path-tab:hover .tab-arrow { transform: rotate(0); opacity: 1; }
+}
+
+@media (max-width: 699px), (pointer: coarse) {
+  .brand, .main-nav a, .header-link, .text-link, .footer-bottom a { min-height: 44px; display: inline-flex; align-items: center; }
+  .hero-bottom a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 }
 
 @media (max-width: 359px) {
@@ -346,7 +355,6 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
   .hero-bottom > span:not(:first-child)::before { margin-right: 8px; }
   .path-tab { font-size: 12px; }
   .path-tab + .path-tab { padding-left: 10px; }
-  .path-tab .tab-arrow { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

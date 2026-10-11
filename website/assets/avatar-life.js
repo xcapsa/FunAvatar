@@ -65,11 +65,13 @@
     var welcomePending = false;
     var expression = null;
     var lastTouch = -Infinity;
+    var touch = null;
     var target = { x: 0, y: 0 };
     var current = { x: 0, y: 0 };
     var observer = null;
     var probe = new Image();
-    var bounds = stage.getBoundingClientRect();
+    var bounds = null;
+    var boundsDirty = true;
 
     stage.dataset.avatarExpression = 'neutral';
 
@@ -112,6 +114,8 @@
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
       lastFrame = 0;
+      touch = null;
+      boundsDirty = true;
       target.x = target.y = current.x = current.y = 0;
       neutral();
     }
@@ -202,7 +206,15 @@
     if (probe.complete && probe.naturalWidth) markReady();
 
     function pointerMove(event) {
-      if (!active() || event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch') {
+        if (touch && event.pointerId === touch.id && Math.hypot(event.clientX - touch.x, event.clientY - touch.y) > 12) touch = null;
+        return;
+      }
+      if (!active()) return;
+      if (boundsDirty || !bounds) {
+        bounds = stage.getBoundingClientRect();
+        boundsDirty = false;
+      }
       target.x = clamp((event.clientX - bounds.left - bounds.width / 2) / Math.max(window.innerWidth * 0.42, bounds.width), -1, 1);
       target.y = clamp((event.clientY - bounds.top - bounds.height / 2) / Math.max(window.innerHeight * 0.46, bounds.height), -1, 1);
       requestFrame();
@@ -212,9 +224,21 @@
       target.x = target.y = 0;
       requestFrame();
     }
-    function touchReaction(event) {
-      if (event.pointerType !== 'touch' || !active()) return;
+    function touchStart(event) {
+      if (event.pointerType !== 'touch') return;
+      touch = null;
+      if (!event.isPrimary || !active() || !touchTarget.contains(event.target)) return;
       if (event.target.closest && event.target.closest('button, a')) return;
+      touch = { id: event.pointerId, x: event.clientX, y: event.clientY, at: event.timeStamp };
+    }
+    function cancelTouch() { touch = null; }
+    function touchReaction(event) {
+      if (!touch || event.pointerId !== touch.id) return;
+      var tap = touch;
+      touch = null;
+      if (!event.isPrimary || !active() || !touchTarget.contains(event.target)) return;
+      if (event.target.closest && event.target.closest('button, a')) return;
+      if (event.timeStamp - tap.at >= 700 || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 12) return;
       if (performance.now() - lastTouch < 1400) return;
       lastTouch = performance.now();
       beginExpression('wink');
@@ -224,17 +248,19 @@
       else wake();
     }
     function motionChange(event) { setReducedMotion(event.matches); }
-    function measure() { bounds = stage.getBoundingClientRect(); }
+    function invalidateBounds() { boundsDirty = true; touch = null; }
 
     document.addEventListener('pointermove', pointerMove, { passive: true });
     document.addEventListener('pointerout', pointerLeave, { passive: true });
     window.addEventListener('blur', pointerLeave);
-    window.addEventListener('resize', measure, { passive: true });
-    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', invalidateBounds, { passive: true });
+    document.addEventListener('scroll', invalidateBounds, { passive: true, capture: true });
     // The stage is decorative and transparent to pointer events; its parent is
     // the touch target, so the page continues to scroll and links still work.
     var touchTarget = stage.closest('.hero-art') || stage;
-    touchTarget.addEventListener('pointerup', touchReaction, { passive: true });
+    document.addEventListener('pointerdown', touchStart, { passive: true });
+    document.addEventListener('pointerup', touchReaction, { passive: true });
+    document.addEventListener('pointercancel', cancelTouch, { passive: true });
     document.addEventListener('visibilitychange', visibilityChange);
     motionQuery.addEventListener('change', motionChange);
     if ('IntersectionObserver' in window) {
@@ -273,9 +299,11 @@
         document.removeEventListener('pointermove', pointerMove);
         document.removeEventListener('pointerout', pointerLeave);
         window.removeEventListener('blur', pointerLeave);
-        window.removeEventListener('resize', measure);
-        window.removeEventListener('scroll', measure);
-        touchTarget.removeEventListener('pointerup', touchReaction);
+        window.removeEventListener('resize', invalidateBounds);
+        document.removeEventListener('scroll', invalidateBounds, true);
+        document.removeEventListener('pointerdown', touchStart);
+        document.removeEventListener('pointerup', touchReaction);
+        document.removeEventListener('pointercancel', cancelTouch);
         document.removeEventListener('visibilitychange', visibilityChange);
         motionQuery.removeEventListener('change', motionChange);
         probe.removeEventListener('load', markReady);

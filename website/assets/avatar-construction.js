@@ -132,6 +132,7 @@
     let ratio = 1;
     let stage = '';
     let observer = null;
+    const mobile = window.matchMedia('(pointer: coarse), (max-width: 699px)');
 
     const notify = (callback, value) => {
       if (typeof callback === 'function') {
@@ -148,7 +149,7 @@
       const bounds = canvas.getBoundingClientRect();
       width = Math.max(1, bounds.width || canvas.clientWidth || 1);
       height = Math.max(1, bounds.height || canvas.clientHeight || width);
-      ratio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+      ratio = Math.min(mobile.matches ? 1.5 : 2, Math.max(1, window.devicePixelRatio || 1));
       const nextWidth = Math.round(width * ratio), nextHeight = Math.round(height * ratio);
       if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
         canvas.width = nextWidth;
@@ -332,12 +333,26 @@
         return;
       }
       if (imageState !== 'ready') return;
+      if (!mesh) {
+        try {
+          mesh = buildMesh(image);
+          if (!mesh.points.length || !mesh.triangles.length) throw new Error('Empty mesh');
+        } catch (_) { imageState = 'failed'; complete(run, true); return; }
+      }
       resize();
       start = null;
+      let lastRender = null;
       const tick = timestamp => {
         if (destroyed || !playing || run !== token) return;
         if (start === null) start = timestamp;
         const time = Math.min(DURATION, (timestamp - start) / 1000);
+        const interval = mobile.matches ? 1000 / 30 : 0;
+        const elapsed = lastRender === null ? Infinity : timestamp - lastRender;
+        if (time < DURATION && elapsed + 0.1 < interval) {
+          frame = window.requestAnimationFrame(tick);
+          return;
+        }
+        lastRender = interval && lastRender !== null ? lastRender + Math.floor((elapsed + 0.1) / interval) * interval : timestamp;
         setStage(time < 0.75 ? 'vertices' : time < 2.3 ? 'mesh' : 'material');
         try { render(time); } catch (_) { complete(run, true); return; }
         if (time >= DURATION) complete(run, false);
@@ -384,8 +399,6 @@
         if (destroyed) return;
         try {
           if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image');
-          mesh = buildMesh(image);
-          if (!mesh.points.length || !mesh.triangles.length) throw new Error('Empty mesh');
           imageState = 'ready';
         } catch (_) { imageState = 'failed'; }
         if (playing) begin(token);
