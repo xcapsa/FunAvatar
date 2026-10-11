@@ -23,7 +23,8 @@
 .avatar-build-canvas,
 .avatar-living-face {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -41,9 +42,9 @@
 }
 .avatar-stage.avatar-is-complete.avatar-life-ready .avatar-build-canvas { opacity: 0; }
 .avatar-stage.avatar-is-complete.avatar-life-ready .avatar-living-face { opacity: 1; }
-.hero-art:has(.avatar-stage.avatar-has-life.avatar-is-building) .hero-logo,
-.hero-art:has(.avatar-stage.avatar-is-complete.avatar-life-ready) .hero-logo { opacity: 0; animation: none; }
-.hero-art:has(.avatar-stage.avatar-is-complete:not(.avatar-life-ready)) .hero-logo { opacity: 1; animation: none; }
+.avatar-stage.avatar-has-life.avatar-is-building ~ .hero-logo,
+.avatar-stage.avatar-is-complete.avatar-life-ready ~ .hero-logo { opacity: 0; animation: none; }
+.avatar-stage.avatar-is-complete:not(.avatar-life-ready) ~ .hero-logo { opacity: 1; animation: none; }
 .avatar-stage.avatar-is-building .avatar-living-face { opacity: 0; }
 .avatar-stage.avatar-is-building .avatar-build-canvas { opacity: 1; }
 
@@ -101,7 +102,7 @@
 
 @media (max-width: 699px) {
   .avatar-stage { width: 83%; left: 8.5%; top: 50%; transform: translateY(-50%); }
-  .hero-art:has(.avatar-stage.avatar-has-life) .hero-logo {
+  .avatar-stage.avatar-has-life ~ .hero-logo {
     width: 83%;
     height: auto;
     aspect-ratio: 1;
@@ -112,6 +113,15 @@
   .avatar-controls { left: 12px; right: 12px; bottom: 10px; gap: 5px; }
   .avatar-replay, .avatar-pause { min-height: 44px; min-width: 44px; padding: 8px 10px; font-size: 9px; }
   .avatar-build-status { font-size: 7px; letter-spacing: .075em; max-width: 48%; }
+}
+/* Safari 14 reserves the same geometry without native aspect-ratio. */
+@supports not (aspect-ratio: 1) {
+  .hero-art::before { content: ""; display: block; padding-top: 100%; }
+  .avatar-stage { height: 0; padding-top: 90%; }
+  @media (max-width: 699px) {
+    .hero-art::before { padding-top: 87.719298%; }
+    .avatar-stage { padding-top: 83%; }
+  }
 }
 @media (max-width: 359px) {
   .avatar-build-status { max-width: 40%; font-size: 6px; }

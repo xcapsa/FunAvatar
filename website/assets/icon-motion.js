@@ -5,6 +5,7 @@
   if (typeof Element.prototype.animate !== 'function') return;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const hover = window.matchMedia('(any-hover: hover)');
+  const focusSelector = window.CSS && CSS.supports && CSS.supports('selector(:focus-visible)') ? ':focus-visible' : ':focus';
   const hosts = 'a, button, summary, .panel-outcome, .evidence-column, .evidence-note';
   const active = new Map();
   let touch = null;
@@ -56,7 +57,7 @@
   }, { passive: true });
   document.addEventListener('focusin', event => {
     const host = hostFor(event.target);
-    if (host && event.target.matches(':focus-visible')) react(host);
+    if (host && event.target.matches(focusSelector)) react(host);
   });
   document.addEventListener('pointerdown', event => {
     if (event.pointerType !== 'touch') return;

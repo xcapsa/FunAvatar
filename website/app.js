@@ -195,7 +195,15 @@
     const direction = x < 0 ? 1 : -1;
     activate(active + direction, { hash: true, direction });
   }, { passive: true });
-  window.addEventListener("pointercancel", () => { swipe = null; }, { passive: true });
+  const cancelSwipe = () => { swipe = null; };
+  // A second finger can land outside the slider during a page pinch gesture.
+  window.addEventListener("pointerdown", event => {
+    if (event.pointerType === "touch" && !event.isPrimary) cancelSwipe();
+  }, { passive: true });
+  window.addEventListener("pointercancel", cancelSwipe, { passive: true });
+  window.addEventListener("scroll", cancelSwipe, { passive: true });
+  window.addEventListener("pagehide", cancelSwipe);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) cancelSwipe(); });
   function resizeSlides(force = false) {
     const width = tabList.clientWidth;
     if (!force && width === measuredWidth) return;
