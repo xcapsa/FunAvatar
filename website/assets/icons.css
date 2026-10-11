@@ -5,3 +5,6 @@
 .path-slide-button .site-icon { width: 24px; height: 24px; }
 .footer-bottom a { display: inline-flex; align-items: center; gap: 7px; }
 .footer-bottom .site-icon { width: 13px; height: 13px; }
+
+/* The inner SVG moves independently of existing tab, link and FAQ transforms. */
+.site-icon { transform-box: view-box; transform-origin: center; pointer-events: none; }
