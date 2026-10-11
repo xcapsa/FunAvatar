@@ -1,0 +1,122 @@
+/* A shared square keeps the construction and original artwork aligned. */
+.avatar-stage {
+  position: absolute;
+  width: 90%;
+  aspect-ratio: 1;
+  left: 5%;
+  top: 4%;
+  z-index: 2;
+  pointer-events: none;
+  isolation: isolate;
+}
+.avatar-stage::before {
+  content: "";
+  position: absolute;
+  inset: 12% 10% 8%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 33% 65%, #c8f8490d 0, transparent 62%), radial-gradient(ellipse at 73% 45%, #ff635c10 0, transparent 65%);
+  opacity: 0;
+  transition: opacity .65s ease;
+  z-index: -1;
+}
+.avatar-stage.avatar-is-complete::before { opacity: 1; }
+.avatar-build-canvas,
+.avatar-living-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.avatar-build-canvas { opacity: 1; transition: opacity .48s ease; }
+.avatar-living-face { opacity: 0; transition: opacity .5s ease; }
+.avatar-face-art {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  transform-origin: 50% 62%;
+  filter: drop-shadow(0 18px 22px #0004);
+  backface-visibility: hidden;
+}
+.avatar-stage.avatar-is-complete.avatar-life-ready .avatar-build-canvas { opacity: 0; }
+.avatar-stage.avatar-is-complete.avatar-life-ready .avatar-living-face { opacity: 1; }
+.hero-art:has(.avatar-stage.avatar-has-life.avatar-is-building) .hero-logo,
+.hero-art:has(.avatar-stage.avatar-is-complete.avatar-life-ready) .hero-logo { opacity: 0; animation: none; }
+.hero-art:has(.avatar-stage.avatar-is-complete:not(.avatar-life-ready)) .hero-logo { opacity: 1; animation: none; }
+.avatar-stage.avatar-is-building .avatar-living-face { opacity: 0; }
+.avatar-stage.avatar-is-building .avatar-build-canvas { opacity: 1; }
+
+.avatar-controls {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  z-index: 5;
+}
+.avatar-replay,
+.avatar-pause {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 36px;
+  min-height: 36px;
+  border: 1px solid #53614d;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--paper, #f3f0e8);
+  background: #11161ce8;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: .045em;
+  pointer-events: auto;
+  transition: border-color .2s ease, color .2s ease, background-color .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.avatar-replay:hover,
+.avatar-pause:hover { border-color: var(--lime, #d7ff72); color: var(--lime, #d7ff72); background: #1b241de8; }
+.avatar-replay:focus-visible,
+.avatar-pause:focus-visible { outline: 2px solid var(--coral, #ff937c); outline-offset: 4px; }
+.avatar-replay:disabled,
+.avatar-pause:disabled { opacity: .45; cursor: default; }
+.avatar-pause[aria-pressed="true"] { color: var(--coral, #ff937c); border-color: #a46c5d; }
+.avatar-build-status {
+  margin-right: auto;
+  max-width: 58%;
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--lime, #d7ff72);
+  letter-spacing: .1em;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px #11161c;
+}
+
+@media (max-width: 699px) {
+  .avatar-stage { width: 83%; left: 8.5%; top: 50%; transform: translateY(-50%); }
+  .hero-art:has(.avatar-stage.avatar-has-life) .hero-logo {
+    width: 83%;
+    height: auto;
+    aspect-ratio: 1;
+    left: 8.5%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .avatar-controls { left: 12px; right: 12px; bottom: 10px; gap: 5px; }
+  .avatar-replay, .avatar-pause { min-height: 44px; min-width: 44px; padding: 8px 10px; font-size: 9px; }
+  .avatar-build-status { font-size: 7px; letter-spacing: .075em; max-width: 48%; }
+}
+@media (max-width: 359px) {
+  .avatar-build-status { max-width: 40%; font-size: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-stage::before, .avatar-build-canvas, .avatar-living-face { transition: none; }
+  .avatar-face-art { transform: none !important; }
+}
