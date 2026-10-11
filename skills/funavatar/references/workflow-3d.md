@@ -1,7 +1,9 @@
 # Tracked 3D production
 
-Read for requested 3D production, a resumable Tripo job, or tracking a supplied
-manual export. The existing `funavatar.py` remains an offline concept/report
+For requested native construction, start with [Blender/Unity production](native-production.md). This ledger is optional revision tracking for native files and imported exports; it is not a requirement to use a generator. Use a zero-credit workflow for native/manual work and register its files with `asset`. The Tripo API sections below apply only when that provider is selected and authorized; other providers use the [documented handoffs](production-tools.md), not Tripo job commands.
+
+Read for tracking native/imported revisions or an optional resumable Tripo job.
+The existing `funavatar.py` remains an offline concept/report
 helper. The separate `scripts/tripo_workflow.py` owns the 3D ledger and calls the
 standard-library `tripo_api.py` only for explicit `upload`, `submit` and `resume`
 commands. No installation or paid call is part of skill setup or validation.
@@ -15,7 +17,7 @@ budget. A Studio subscription does not establish API credit access. If that
 scope is absent, prepare inputs and the ledger or inspect an existing export;
 ask only for the missing information needed for an external action.
 
-Use [tripo.md](tripo.md) for clean inputs and the pre-rig fidelity gate. Choose
+When Tripo is selected, use [tripo.md](tripo.md) for clean inputs and the pre-rig fidelity gate. Choose
 the actual available mode/model for the task; do not require an expensive
 high-detail generation followed by retopology when a direct topology-oriented
 generation serves the brief. Verify Studio/API feature parity before selecting

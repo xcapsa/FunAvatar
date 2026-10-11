@@ -4,7 +4,7 @@
 
 **Give your avatar a character worth remembering.**
 
-FunAvatar is a public skill for **Codex and Claude Code**. It helps you design expressive VRChat characters, create consistent 2D modeling references, track authorized 3D production, inspect Blender/Unity projects and debug concrete avatar problems.
+FunAvatar is a public skill for **Codex and Claude Code**. Its primary production route builds editable, rigged and animated characters directly in **Blender and Unity**. It also creates modeling references, tracks optional generator handoffs, and inspects/debugs avatar projects with separate tracking and runtime evidence.
 
 [Visit the website](https://funavatar.mondovr.it) · [Download a release](https://github.com/xcapsa/FunAvatar/releases/latest) · [Share feedback](https://github.com/xcapsa/FunAvatar/issues/new/choose)
 
@@ -14,7 +14,8 @@ FunAvatar is a public skill for **Codex and Claude Code**. It helps you design e
 | --- | --- |
 | A character idea | An identity brief, signature features and a platform/input plan. |
 | A sketch or reference image | A consistent master design and labeled modeling views when an image generator is available. |
-| An approved design or existing 3D export | A production ledger with hashed inputs/revisions, resumable Tripo jobs and explicit credit accounting. Manual imports need no provider account. |
+| An approved design to build in 3D | Native Blender mesh/UV/material/armature/actions, reviewed export and Unity prefab/controllers when the compatible editor is available. |
+| Another generator or an existing 3D export | A provider-neutral handoff and revision ledger; Tripo has a bundled optional API adapter. Other documented exports use manual import unless a real connector is available. |
 | A Blender, Unity or VRChat problem | Compact native observations, a bounded reproduction plan, targeted fixes and clearly separated test evidence. |
 
 Start with **one project and one primary chat per avatar**. Keep outfits, transformations and platform variants with the same character. Save shared conventions at project level and the approved design, assets and test evidence with that avatar.
@@ -54,7 +55,13 @@ Discovery follows the [Codex skill guide](https://learn.chatgpt.com/docs/build-s
 
 Codex uses its built-in image generator when available. Other hosts use an available connected tool; without one, FunAvatar provides a brief and runnable prompts and leaves images pending. It does not install or charge for a provider to hide missing capabilities.
 
-## 3D production and Tripo
+## Native production and optional generators
+
+Start with [native Blender/Unity production](skills/funavatar/references/native-production.md). The agent uses an available application interface, MCP or focused native `bpy`/C# Editor script to create and read back actual assets; it does not stop at a picture when an animated avatar was requested. A temporary toolchain fixture is only execution proof and is never delivered as the final character.
+
+The [tool catalogue](skills/funavatar/references/production-tools.md) documents Blender, Unity, Meshy, Tripo, Rodin/Hyper3D and suitable local alternatives, with optional Maya/ZBrush/Substance handoffs. Documented file interchange is distinct from an installed or tested automatic connector. Hardware, licensing, materials, rig and animation preservation are checked per route.
+
+For responsive behavior use [tracking and environment requirements](skills/funavatar/references/tracking-environment.md) and the [avatar delivery contract](skills/funavatar/assets/avatar-contract.template.json). Body tracking/weights, hand tracking, FBT, actual animation states and secondary physics need separate evidence. Wind/water response depends on the application or a cooperating world and must have an explicit fallback; it is not automatic in every VRChat world.
 
 The optional workflow helper supports a **manual, offline route** and explicitly authorized **Tripo API operations**. API work requires the user's provider, reference-upload scope, requested operations and numeric credit budget. Use `TRIPO_API_KEY` through the execution environment, never in a command argument or report.
 
@@ -67,6 +74,9 @@ Read the [3D workflow](skills/funavatar/references/workflow-3d.md) for exact com
 ## Guides and local tools
 
 - [Character foundations and distinctive features](skills/funavatar/references/character-design.md)
+- [Native authoring and execution checks](skills/funavatar/references/native-production.md)
+- [Production tools and provider-neutral handoffs](skills/funavatar/references/production-tools.md)
+- [Hand/full-body tracking, animation and environment](skills/funavatar/references/tracking-environment.md)
 - [Concept prompts](skills/funavatar/references/prompt-recipes.md) and [visual review](skills/funavatar/references/review-rubric.md)
 - [Modeling handoff and fidelity gate](skills/funavatar/references/technical-handoff.md)
 - [Blender/Unity project checks](skills/funavatar/references/project-checks.md)

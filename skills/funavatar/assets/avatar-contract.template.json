@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "funavatar_delivery_contract",
+  "avatar": "REPLACE_WITH_CHARACTER_NAME",
+  "authoring_priority": ["blender_native", "unity_native"],
+  "external_generators": "optional_only_when_selected",
+  "targets": [],
+  "source_revision": null,
+  "required_deliverables": [
+    "editable_mesh_and_material_uv_source",
+    "deforming_armature_and_complete_weights",
+    "requested_actions_and_shape_keys",
+    "reviewed_export_with_material_dependencies",
+    "target_unity_prefab_clips_controller_and_sdk_configuration"
+  ],
+  "visual_acceptance": {
+    "reference_fidelity": "not_assessed",
+    "unintended_boxy_silhouette_or_faceting": "needs_inspection",
+    "face_and_five_digit_hands_when_applicable": "not_assessed",
+    "texture_uv_and_import_quality": "not_assessed"
+  },
+  "animation_coverage": [
+    "idle_and_locomotion", "turn", "sit_and_crouch", "hands_and_gestures",
+    "speech_and_expressions", "requested_props", "transition_interrupt_reset_and_tracking_restore"
+  ],
+  "tracking": [
+    {"input": "ordinary_controls", "setup": null, "status": "not_verified"},
+    {"input": "hand_tracking", "hardware_driver_client": null, "status": "not_verified"},
+    {"input": "full_body_tracking", "trackers_calibration_client": null, "status": "not_verified"}
+  ],
+  "physics": {
+    "body_owner": "tracking_ik_and_skinning",
+    "secondary_parts": [],
+    "gravity_inertia_limits_collision": "not_verified",
+    "wind": {"requested": false, "world_or_app_signal": null, "simulation_path": null, "fallback": null, "status": "not_verified"},
+    "water": {"requested": false, "world_or_app_signal": null, "simulation_path": null, "fallback": null, "status": "not_verified"},
+    "automatic_all_vrchat_worlds": false
+  },
+  "evidence": {
+    "native_source_reload": null,
+    "export_roundtrip": null,
+    "unity_import_and_controller": null,
+    "sdk_build": null,
+    "tracked_client_motion": null,
+    "remote_client": null,
+    "native_target_devices": []
+  }
+}

@@ -1,6 +1,6 @@
 ---
 name: funavatar
-description: Plan expressive VRChat characters and their platform-specific features, create consistent 2D concepts and modeling references, produce 3D assets through an authorized Tripo workflow with a local job ledger, resumable jobs and budget reservations, or inspect and debug an existing Blender, Unity or VRChat avatar project. Use for FunAvatar, character design, avatar reference sheets, 3D generation and concrete avatar defects; generation and static reports do not certify tested avatar behavior.
+description: Build and debug expressive, rigged and animated avatar projects directly in Blender and Unity, plan tracking and platform-specific physics, and create consistent 2D references when needed. Use for FunAvatar, avatar creation, animation, hand/full-body tracking and concrete defects. Tripo and other generators are optional handoff routes; assets and static reports do not certify tested avatar behavior.
 ---
 
 # FunAvatar
@@ -11,13 +11,22 @@ Choose the route that matches the supplied evidence. Keep **2D concept**, **3D p
 | --- | --- | --- |
 | Character foundations, distinctive features, animation or broad platform usability | [Character design](references/character-design.md) | Identity brief, coherent feature plan, platform/input matrix and implementation stages; no compatibility claim without tests. |
 | Idea, reference image, turnaround, transformation | [Prompt recipes](references/prompt-recipes.md), then [visual review](references/review-rubric.md) | Actual images when generation is available, identity brief, review and modeling limitations. |
-| Generate a 3D model from an approved design, continue a Tripo job, or track an exported model | [3D workflow](references/workflow-3d.md), then [Tripo profile](references/tripo.md) when Tripo is used | Local `workflow.json`, tracked inputs/revisions/jobs, budget reservations and evidence for each assessed gate. |
+| Build or repair the actual 3D character, rig and animations | [Native production](references/native-production.md), then [tracking/environment](references/tracking-environment.md) for responsive behavior | Editable Blender source and actual Unity assets/exports, native readback and distinct tracking/runtime proof. |
+| Select another production tool, use an optional generator, or track an imported model | [Production tools](references/production-tools.md), then [3D workflow](references/workflow-3d.md); [Tripo profile](references/tripo.md) only when selected | Provider-neutral source/export handoff and local revision ledger; only the selected adapter's operations are used. |
 | Existing model or Unity project, inventory or static defects | [Project checks](references/project-checks.md) | Native compact reports, findings, and clearly unverified runtime checks. |
 | Reference mismatch, broken effect, remote/mobile difference, deformation, pixelation or motion | [Runtime debug](references/runtime-debug.md); project checks only if evidence is missing | Reproduction, smallest supported fix, and proof at the affected stages. |
 
 For a concept handoff, read [technical-handoff.md](references/technical-handoff.md) only when implementation advice is requested. Do not load all references, models or logs by default.
 
-When an upstream model uses Tripo, read the [Tripo profile](references/tripo.md) for input preparation, detail loss between generation/retopology/export, and the pre-rig fidelity gate. Read the [3D workflow](references/workflow-3d.md) only when producing or tracking assets and jobs; inspecting a supplied export does not require API access.
+Native Blender/Unity authoring is the default for requested 3D creation. Use available MCP, CLI or application interfaces and focused native scripts; a missing MCP alone does not justify stopping at prompts. Read [production tools](references/production-tools.md) only when choosing a tool or interchange route. Tripo, Meshy, Rodin and suitable local generators are optional, subject to actual access, licenses and supported handoffs. When Tripo is selected, read its profile and job workflow; no provider is mandatory and no other provider's job may be sent to the Tripo adapter.
+
+## Required moving-avatar result
+
+For an actual avatar request, use the [native production](references/native-production.md) and [tracking/environment](references/tracking-environment.md) routes. Preserve an editable source with refined mesh, UV/materials, deforming rig/weights, actual requested actions and a Unity prefab/controller when that target is available. Images, static exports, primitive mannequins and the native smoke fixture are not the requested finished character. Distinguish unintended boxy silhouette, faceted normals and texture artifacts; intentional hard armor and quad topology are not defects by themselves.
+
+Start a per-avatar contract from [the template](assets/avatar-contract.template.json), recording required animation coverage, actual hand/FBT input routes, target platforms, attachments and intended physics. Track idle/locomotion, turn, sit/crouch, hands/face, requested props and all transitions/interruption/reset paths. Do not silently drop requested hand tracking or FBT when hardware is missing; keep their evidence unverified and specify the real setup required. Every animation override must restore intended tracking.
+
+Garments first follow body deformation, then supported secondary chains may add gravity/inertia/collision. Wind/water are separate environment-dependent features: document the world/app signal and simulation path, with explicit fallback when absent. Do not promise automatic forces in every VRChat world or use unsupported avatar scripts/components. Static art or a recorded pose cannot pass tracking, environmental response or dynamic-motion gates.
 
 ## Organize the project and avatar chats
 
@@ -53,7 +62,7 @@ For a full sheet or transformation, delegate design/identity review and modeling
 
 ## Produce or resume a 3D asset
 
-Follow [workflow-3d.md](references/workflow-3d.md) for the local ledger and optional Tripo adapter. Choose an authorized API operation or import an existing manual export. Record the approved inputs, their hashes, operation settings, model/version, parent revisions and provider task identifier. Preserve the detailed source, optimized derivative and export as separate revisions. Keep `workflow.json` separate from the strict schema-version-1 Blender/Unity observation reports.
+Build natively through [native-production.md](references/native-production.md) unless the user chooses another route. The [3D workflow](references/workflow-3d.md) can track native/imported files with a zero-credit ledger; its Tripo adapter is optional. Record the approved inputs, hashes, native scripts/settings, tool or provider version, parent revisions and any real provider task identifier. Preserve editable source, optimized derivative and export as separate revisions. Keep `workflow.json` separate from strict Blender/Unity observation reports and the temporary native toolchain fixture.
 
 Reserve a declared `max_credits` before each API submission within the task's authorized total. This is local accounting, not a provider-enforced price cap: verify current pricing, record the estimate and reconcile real cost when evidence is available. Stop further submissions on an overrun or unresolved submission outcome. Save submission intent before the paid request and persist the returned task identifier immediately; resume known jobs by querying their state. An ambiguous submission must never be retried automatically with another POST.
 
