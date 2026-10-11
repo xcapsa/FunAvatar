@@ -43,6 +43,18 @@ python3 install.py --target both --update
 
 Updates verify managed file hashes, refuse unrecognized local changes and symlinks, stage both targets before replacement, and retain rollback backups outside skill discovery at `~/.local/share/funavatar/backups`. They do not change application settings. Preserve custom work before upgrading; the installer will not silently discard it.
 
+### Optional automatic updates
+
+After installing a release with the updater, you can ask FunAvatar to enable automatic updates for Codex, Claude Code or both. For example, from the repository:
+
+```sh
+python3 skills/funavatar/scripts/funavatar_update.py enable --target both
+```
+
+At the start of each new use, the skill checks for a stable release and updates the selected installations if eligible. It verifies the package, keeps backups and preserves local modifications by deferring the update. Without opt-in it makes no update request. No background service is installed.
+
+Older users need one manual upgrade first. Hosts that only support uploading skill ZIPs still use their own import/update mechanism. See [update commands and limits](skills/funavatar/references/updates.md) for checking, updating once, disabling and handling offline or customized installations.
+
 Discovery follows the [Codex skill guide](https://learn.chatgpt.com/docs/build-skills) and [Claude Code skill guide](https://code.claude.com/docs/en/skills). A portable skill ZIP is available in releases for environments that support manual skill uploads; account support and image tools vary by host.
 
 ## Try it

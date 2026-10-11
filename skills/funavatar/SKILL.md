@@ -5,6 +5,12 @@ description: Build and debug expressive, rigged and animated avatar projects dir
 
 # FunAvatar
 
+## Optional updates at the start of use
+
+For a local Codex or Claude Code installation with Python 3.10+ and persistent filesystem access, run `python3 <this-skill-folder>/scripts/funavatar_update.py auto` once at the start of a new use, before production commands. Without an existing user opt-in it performs no network request or update. Do not enable updates merely because the skill was invoked. If the user asks to enable or disable them, follow [updates.md](references/updates.md) for the exact command and target scope.
+
+If the result reports an update, reread `SKILL.md` and the relevant resources at the returned installed path before proceeding. Keep updates outside an ongoing production operation; do not interrupt another active avatar workflow to update its tools. On a deferred update, continue with the current installation and state the specific limitation when relevant. Never bypass local-change protection or execute an installer from a downloaded package during an automatic update; an explicitly requested manual bootstrap from a verified ZIP is a separate route. In hosts without a usable local Python/filesystem route, explain the manual import path instead of claiming automatic updates. This feature runs when the skill is used; it is not a background service or an update to already-loaded chat instructions.
+
 Choose the route that matches the supplied evidence. Keep **2D concept**, **3D production**, **project inspection**, **SDK validation** and **tested avatar behavior** distinct.
 
 | Request | Read on demand | Result |

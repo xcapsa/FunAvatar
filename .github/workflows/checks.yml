@@ -20,3 +20,15 @@ jobs:
       - run: python install.py --target both --home "$RUNNER_TEMP/funavatar-home"
       - run: python install.py --target both --update --home "$RUNNER_TEMP/funavatar-home"
       - run: python "$RUNNER_TEMP/funavatar-home/.agents/skills/funavatar/scripts/funavatar.py" debug-plan --symptom remote --out "$RUNNER_TEMP/funavatar-debug-plan"
+  updater-platforms:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p test_install.py -v
+      - run: python -m unittest discover -s tests -p test_funavatar_update.py -v
