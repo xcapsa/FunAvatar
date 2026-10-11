@@ -168,6 +168,9 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
 .footer-top > p { font-size: 16px; line-height: 1.4; letter-spacing: -.02em; color: #b6bdc3; margin-left: auto; margin-right: auto; }
 .footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 25px; font-size: 10px; line-height: 1.6; color: #b6bdc3; border-top: 1px solid var(--rule-dark); min-height: 70px; }
 .footer-bottom a:hover { color: var(--lime); }
+.update-note { grid-column: 1 / -1; padding-top: 24px; border-top: 1px solid #11161c33; font-size: 14px; line-height: 1.7; }
+.update-note p + p { margin-top: 10px; }
+.update-note a { text-decoration: underline; }
 
 @keyframes logo-in { from { opacity: 0; transform: translateY(12px) rotate(-4deg); } to { opacity: 1; transform: translateY(0) rotate(0); } }
 
