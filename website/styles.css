@@ -77,7 +77,7 @@ h1 em { color: var(--lime); letter-spacing: -.075em; }
 .art-marker { position: absolute; right: 13px; bottom: 11px; font-size: 13px; font-weight: 700; line-height: 1.2; }
 .art-marker span { color: var(--coral); margin: 0 3px; }
 .hero-bottom { grid-column: 1 / -1; display: flex; align-items: center; gap: 35px; min-height: 90px; border-top: 1px solid var(--rule-dark); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .13em; }
-.hero-bottom > span:not(:first-child)::before { content: "+"; color: var(--lime); margin-right: 35px; font-size: 14px; font-weight: 400; }
+.hero-bottom > span:not(:first-child)::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 35px; vertical-align: middle; background: linear-gradient(var(--lime), var(--lime)) center / 100% 1px no-repeat, linear-gradient(var(--lime), var(--lime)) center / 1px 100% no-repeat; }
 .hero-bottom a { margin-left: auto; padding: 4px 12px; font-size: 30px; color: var(--lime); }
 
 .paper { background: var(--paper); color: var(--ink); }
@@ -101,7 +101,7 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
 .panel-main > p:not(.eyebrow) { margin-top: 24px; max-width: 475px; font-size: 15px; }
 .feature-list { list-style: none; max-width: 475px; margin-top: 23px; font-size: 13px; line-height: 1.65; }
 .feature-list li { position: relative; padding-left: 21px; margin-top: 12px; }
-.feature-list li::before { content: "↳"; position: absolute; left: 0; font-size: 15px; }
+.feature-list li::before { content: ""; position: absolute; left: 0; top: 4px; width: 16px; height: 16px; background: url("./assets/icons/branch.svg") center / contain no-repeat; }
 .panel-outcome { border-left: 1px solid var(--rule-light); padding-left: 39px; display: flex; flex-direction: column; align-items: flex-start; }
 .outcome-symbol { color: var(--ink); font-size: 64px; line-height: .85; margin-bottom: 29px; }
 .panel-outcome .eyebrow { font-size: 9px; margin-bottom: 18px; }
@@ -270,7 +270,7 @@ h2 { font-size: clamp(52px, 5.1vw, 80px); line-height: 1.02; letter-spacing: -.0
   .art-label { font-size: 7px; }
   .art-marker { display: inline; }
   .hero-bottom { min-height: 70px; gap: 10px; font-size: 7px; letter-spacing: .06em; }
-  .hero-bottom > span:not(:first-child)::before { margin-right: 10px; font-size: 10px; }
+  .hero-bottom > span:not(:first-child)::before { margin-right: 10px; }
   .hero-bottom a { font-size: 24px; padding: 4px 3px; }
   h2 { font-size: 54px; }
   .section-index { font-size: 9px; margin-bottom: 25px; }

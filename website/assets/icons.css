@@ -1,0 +1,7 @@
+.site-icon { display: block; width: 1em; height: 1em; flex: 0 0 auto; overflow: visible; color: inherit; }
+.header-link > span, .button > span, .text-link > span, .tab-arrow, .column-label > span, .evidence-note > span, .faq summary > span { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.hero-bottom > a .site-icon { width: 24px; height: 24px; }
+.avatar-controls .site-icon { width: 14px; height: 14px; }
+.path-slide-button .site-icon { width: 24px; height: 24px; }
+.footer-bottom a { display: inline-flex; align-items: center; gap: 7px; }
+.footer-bottom .site-icon { width: 13px; height: 13px; }

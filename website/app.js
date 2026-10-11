@@ -14,7 +14,7 @@
   panels.forEach(panel => viewport.append(panel));
   const controls = document.createElement("div");
   controls.className = "path-slide-controls";
-  controls.innerHTML = '<div class="path-slide-counter" role="status" aria-live="polite" aria-atomic="true"></div><div class="path-slide-nav"><button class="path-slide-button path-slide-previous" type="button" aria-label="Percorso precedente"><span aria-hidden="true">←</span></button><button class="path-slide-button path-slide-next" type="button" aria-label="Percorso successivo"><span aria-hidden="true">→</span></button></div><div class="path-slide-progress" aria-hidden="true"><span></span></div>';
+  controls.innerHTML = '<div class="path-slide-counter" role="status" aria-live="polite" aria-atomic="true"></div><div class="path-slide-nav"><button class="path-slide-button path-slide-previous" type="button" aria-label="Percorso precedente"><span aria-hidden="true"><svg class="site-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><use href="./assets/icons.svg#arrow-left"></use></svg></span></button><button class="path-slide-button path-slide-next" type="button" aria-label="Percorso successivo"><span aria-hidden="true"><svg class="site-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><use href="./assets/icons.svg#arrow-right"></use></svg></span></button></div><div class="path-slide-progress" aria-hidden="true"><span></span></div>';
   viewport.after(controls);
   const counter = controls.querySelector(".path-slide-counter");
   const indicator = document.createElement("span");
@@ -214,7 +214,8 @@
     pause.disabled = reduced || failed;
     pause.setAttribute("aria-pressed", String(userPaused || reduced));
     pause.setAttribute("aria-label", userPaused ? "Riprendi le animazioni" : "Metti in pausa le animazioni");
-    pause.textContent = userPaused ? "▶ Riprendi" : "Ⅱ Pausa";
+    pause.querySelector("use").setAttribute("href", "./assets/icons.svg#" + (userPaused ? "play" : "pause"));
+    pause.querySelector(".control-label").textContent = userPaused ? "Riprendi" : "Pausa";
     if (reduced && status) status.textContent = "MOVIMENTO RIDOTTO";
   }
 
