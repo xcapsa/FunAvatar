@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 
 
 MAX_REPORT_BYTES = 128 * 1024
@@ -107,14 +108,72 @@ def _bad_constant(value: str):
     raise ValueError(f"Nonfinite JSON number: {value}")
 
 
+def validate_provenance(value, tool, target):
+    keys = {"collector", "collector_version", "native_target", "source", "packages_state", "packages"}
+    if not isinstance(value, dict) or value.keys() != keys:
+        raise ValueError("Schema v2 requires bounded collector, source, target and package provenance")
+    if value["collector"] != f"funavatar.{tool}_report":
+        raise ValueError("Collector must match the report tool")
+    version = value["collector_version"]
+    if not isinstance(version, str) or not re.fullmatch(r"[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}", version):
+        raise ValueError("Invalid collector version")
+    native = value["native_target"]
+    if not isinstance(native, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", native):
+        raise ValueError("Invalid native target")
+    actual = "android" if native == "Android" else "pc" if native.startswith("Standalone") else None
+    if target is not None and target != actual:
+        raise ValueError("Declared target does not match the observed native target")
+    source = value["source"]
+    if not isinstance(source, dict) or source.keys() != {"kind", "state", "hash_algorithm", "hash"}:
+        raise ValueError("Invalid source provenance")
+    kinds = {"blend_file"} if tool == "blender" else {"unity_asset", "unity_scene"}
+    algorithm, width = ("sha256", 64) if tool == "blender" else ("unity_dependency_hash128", 32)
+    if (not isinstance(source["kind"], str) or source["kind"] not in kinds or
+            source["state"] not in ("saved", "modified", "unsaved", "unknown")):
+        raise ValueError("Invalid source kind or state")
+    if source["hash_algorithm"] != algorithm or not isinstance(source["hash"], str):
+        raise ValueError("Invalid source hash algorithm")
+    if source["state"] == "saved":
+        if not re.fullmatch(r"[a-f0-9]{%d}" % width, source["hash"]) or not source["hash"].strip("0"):
+            raise ValueError("Saved source needs a valid, nonzero fingerprint")
+    elif source["hash"]:
+        raise ValueError("Modified, unsaved or unknown source cannot claim a current saved fingerprint")
+    packages = value["packages"]
+    if not isinstance(packages, list) or len(packages) > 256:
+        raise ValueError("Expected a bounded package inventory")
+    if tool == "blender":
+        if native != "not_applicable" or value["packages_state"] != "not_applicable" or packages:
+            raise ValueError("Blender provenance has no Unity target or package inventory")
+    elif value["packages_state"] not in ("observed", "unknown"):
+        raise ValueError("Invalid package inventory state")
+    if value["packages_state"] == "unknown" and packages:
+        raise ValueError("Unknown package inventory must be empty")
+    names = set()
+    for package in packages:
+        if not isinstance(package, dict) or package.keys() != {"name", "version"}:
+            raise ValueError("Package provenance contains only name and version")
+        name, version = package["name"], package["version"]
+        if (not isinstance(name, str) or not re.fullmatch(r"[a-z0-9][a-z0-9.-]{0,127}", name)
+                or name in names):
+            raise ValueError("Invalid or duplicate package name")
+        if (not isinstance(version, str) or len(version) > 128 or
+                not re.fullmatch(r"unknown|[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.+-]+)?", version)):
+            raise ValueError("Invalid package version; paths and URLs do not belong in provenance")
+        names.add(name)
+    return actual
+
+
 def validate_report(report: dict) -> dict:
     if not isinstance(report, dict):
         raise ValueError("Report must be a JSON object")
+    schema = report.get("schema_version")
+    if type(schema) is not int or schema not in (1, 2):
+        raise ValueError("Unsupported report schema_version; expected integer 1 or 2")
     required = {"schema_version", "tool", "tool_version", "subject", "observations"}
+    if schema == 2:
+        required.add("provenance")
     if not required <= report.keys() or report.keys() - required - {"target"}:
         raise ValueError("Report needs schema_version, tool, tool_version, subject, observations; only target is optional")
-    if type(report["schema_version"]) is not int or report["schema_version"] != 1:
-        raise ValueError("Unsupported report schema_version; expected integer 1")
     tool = report["tool"]
     if not isinstance(tool, str) or tool not in RULES:
         raise ValueError("Report tool must be blender or unity")
@@ -125,6 +184,8 @@ def validate_report(report: dict) -> dict:
             raise ValueError(f"Report {key} must be nonempty text of at most 512 characters without control characters")
     if "target" in report and report["target"] not in ("pc", "android", "both"):
         raise ValueError("Report target must be pc, android or both")
+    if schema == 2:
+        validate_provenance(report["provenance"], tool, report.get("target"))
     facts = report["observations"]
     if not isinstance(facts, dict):
         raise ValueError("Report observations must be an object of known integer counts")
@@ -205,8 +266,13 @@ def project_check(filenames: list[str], out: str | None = None) -> tuple[dict, i
                 detail = explanation if status != "pass" or issue is None else "Reported count is zero in the surveyed scope only."
             checks.append({"id": key, "status": status, "evidence": evidence,
                            "source": source, "detail": detail})
+        target = report.get("target")
+        if report["schema_version"] == 2:
+            target = validate_provenance(report["provenance"], tool, target)
         checked.append({"tool": tool, "tool_version": report["tool_version"],
-                        "subject": report["subject"], "target": report.get("target"),
+                        "subject": report["subject"], "target": target,
+                        "source_schema_version": report["schema_version"],
+                        "provenance": report.get("provenance"),
                         "checks": checks,
                         "additional_observations": {key: facts[key] for key in sorted(OPTIONAL_COUNTS[tool] & facts.keys())}})
     runtime = [{"id": key, "status": "not_verified", "evidence": None,

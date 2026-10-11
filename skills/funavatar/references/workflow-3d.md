@@ -44,7 +44,7 @@ The ledger contains:
   and observed charge evidence.
 - Revision-specific gates, their history, target, notes and hashed evidence.
 
-Failed submissions, uploads, task queries and failed/cancelled tasks retain optional `last_error` metadata: stage, operation, observation time, a fixed error class and numeric HTTP/provider codes when available. `status` exposes this diagnostic without contacting the provider. The message is generated locally; provider text, response bodies and signed URLs are not copied. `last_error` is historical and must be read alongside the current job status. Existing ledgers without this field remain valid; an uncertain submission still retains its reservation and is never resubmitted automatically.
+Failed submissions, uploads, task queries, downloads and failed/cancelled tasks retain optional `last_error` metadata: stage, operation, observation time, a fixed error class and numeric HTTP/provider codes when available. `status` exposes this diagnostic without contacting the provider. The message is generated locally; provider text, response bodies and signed URLs are not copied. `last_error` is the latest recorded failure, not a complete error history, and must be read alongside the current job status. A verified download or explicit output adoption clears only a latest `download` error; earlier submit/poll/task diagnoses remain historical when they are still the latest diagnosis. `--no-download` does not clear diagnoses. Existing ledgers without this field remain valid; an uncertain submission still retains its reservation and is never resubmitted automatically.
 
 Keep originals and derivatives in separate files. Register a changed model,
 material package, Unity project snapshot or relevant configuration report under
@@ -158,18 +158,42 @@ Each `resume` performs one task query. If still queued/running, repeat a bounded
 read-only query later against the same job. No background scheduler or unbounded
 polling is created. The ledger and model files survive process/session changes.
 
-On success, `resume` downloads the primary `model_url` into `artifacts/`, records
-its hash and parents, and reuses that unchanged file on later resumes. Download
-failures leave the successful provider task and charge recorded. Use
+On success, `resume` downloads the primary `model_url` into `artifacts/`, checks
+the actual file against the transport's path/hash/byte record, records its hash
+and parents, and reuses that unchanged file on later resumes. Provider `status`
+is separate from `output_status`: `not_downloaded` has no registered model,
+`materialized` has verified local output, `not_available` has no usable primary
+model URL (including JSON-only rig checks), and `missing`/`mismatch` indicate
+absent or changed recorded output. Offline `status` rechecks registered output
+integrity without rewriting the ledger. None of these statuses certifies mesh
+quality, complete materials, rigging or client behavior. Download failures leave
+the successful provider task, reservation and observed charge recorded and save
+a sanitized `last_error` with stage `download`. Retry only `resume` for that same
+known task; no replacement POST or extra generation reservation is created. Use
 `--no-download` to query without fetching a model. Preview images, split output
 parts and external texture files are not automatically collected; register the
 files needed for the actual handoff separately. A primary-model download alone
 does not establish a complete material package.
 
+Run [export-check](export-bundles.md) on the downloaded/exported file before
+handoff. It records the model, discovered dependencies and a file-set fingerprint;
+missing textures or buffers leave the package incomplete. Register sidecars as
+assets and attach their IDs as parents of the export revision, then preserve the
+manifest as export evidence. Changing a registered sidecar invalidates that
+revision's gates even when the main model file is unchanged. File completeness
+does not establish native import, deformation, SDK or client success.
+
 Output URLs remain transient in memory. Downloads omit the API key, require
 public HTTPS, validate redirects, stream within a size limit and refuse to
-overwrite existing files. If a crash committed a download before recording its
-hash, compare it with provider evidence and explicitly adopt the preserved file:
+overwrite existing files. The transport removes its incomplete temporary files;
+an unrecorded final file left by an interruption or a transport-record mismatch
+is preserved and never registered or automatically reused. Compare the complete
+file with provider evidence before explicitly adopting it; do not adopt a partial
+or mismatched file. A recorded mismatch blocks further automatic downloads even
+if the same task later returns a different URL or extension. Adoption validates
+the unchanged planned input hashes and the preserved output before registering
+the model or clearing its download diagnosis. Empty files and symlinks cannot be adopted. If a crash committed
+a download before recording its hash, use the same explicit adoption route:
 
 ```sh
 python3 scripts/tripo_workflow.py adopt-output /path/run/workflow.json --job base-01 --file /path/run/artifacts/base-01-model.glb --note "Verified preserved download against this provider task after interruption."

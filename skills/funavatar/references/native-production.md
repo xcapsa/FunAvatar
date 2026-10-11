@@ -24,6 +24,8 @@ Implement the animation states the brief calls for as real Blender actions and/o
 
 Export to a new target file with explicit units, axes, rig and animation settings; reimport and inspect the result. Preserve the `.blend` as the authoring source. In a compatible Unity project, import the asset, inspect skinning/materials/clips, create or update the intended prefab/controller and run the relevant Editor/SDK checks. A license or compatible-editor blocker leaves Unity/SDK work unverified; do not manufacture proof by importing into an unsupported editor. Exported clips alone do not implement VRChat menus, synchronization, gestures or expressions.
 
+Use [export-check](export-bundles.md) to record the exported model and its file dependencies before handing them off. For opaque formats such as FBX, supply the native exporter's explicit dependency declaration or leave completeness unassessed. Native reimport, shader reconstruction and deformation checks remain separate from file completeness.
+
 Deliver the editable source and actual exports, plus a brief record of source hashes, native readback, views/motion samples and checks that ran. Distinguish Blender authoring, export round trip, Unity import/controller behavior, SDK build and local/remote/device client behavior. Continue repairing the native asset at the failed stage rather than replacing requested production with a new reference image.
 
 ## Check the Blender execution path with a temporary fixture

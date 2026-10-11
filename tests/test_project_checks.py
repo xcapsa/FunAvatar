@@ -1,6 +1,7 @@
 """Behavior and evidence boundaries of the dependency-free project helper."""
 
 from contextlib import redirect_stderr, redirect_stdout
+import copy
 import importlib.util
 import io
 import json
@@ -48,6 +49,82 @@ class ProjectChecksTests(unittest.TestCase):
     @staticmethod
     def by_id(result):
         return {item["id"]: item for report in result["reports"] for item in report["checks"]}
+
+    @staticmethod
+    def provenance():
+        return {"collector": "funavatar.unity_report", "collector_version": "2.0.0",
+                "native_target": "Android",
+                "source": {"kind": "unity_asset", "state": "saved",
+                           "hash_algorithm": "unity_dependency_hash128", "hash": "abc123ef" * 4},
+                "packages_state": "observed",
+                "packages": [{"name": "com.vrchat.avatars", "version": "3.10.1"}]}
+
+    def test_v1_stays_readable_with_explicit_unknown_provenance(self):
+        report = self.report(target="both")
+        result, _ = checks.project_check([str(report)])
+        self.assertEqual(result["reports"][0]["source_schema_version"], 1)
+        self.assertEqual(result["reports"][0]["target"], "both")
+        self.assertIsNone(result["reports"][0]["provenance"])
+        self.assertEqual(result["runtime_status"], "not_verified")
+
+    def test_v2_provenance_survives_cli_without_promoting_static_checks(self):
+        provenance = self.provenance()
+        report = self.report(schema_version=2, provenance=provenance)
+        code, output, errors = self.run_cli("project-check", str(report))
+        self.assertEqual((code, errors), (0, ""))
+        result = json.loads(output)
+        self.assertEqual(result["reports"][0]["provenance"], provenance)
+        self.assertEqual(result["reports"][0]["target"], "android")
+        self.assertEqual(result["runtime_status"], "not_verified")
+        self.assertTrue(all(item["status"] == "not_verified" for item in result["required_evidence"]))
+
+    def test_v2_unsaved_modified_and_unknown_sources_are_explicit(self):
+        for state in ("unsaved", "modified", "unknown"):
+            with self.subTest(state=state):
+                provenance = self.provenance()
+                provenance["source"].update(state=state, hash="")
+                report = self.report(schema_version=2, provenance=provenance)
+                result, _ = checks.project_check([str(report)])
+                self.assertEqual(result["reports"][0]["provenance"]["source"]["state"], state)
+                self.assertEqual(result["runtime_status"], "not_verified")
+
+    def test_v2_ios_is_only_native_provenance_and_never_an_android_gate(self):
+        provenance = self.provenance()
+        provenance["native_target"] = "iOS"
+        report = self.report(schema_version=2, provenance=provenance)
+        result, _ = checks.project_check([str(report)])
+        self.assertIsNone(result["reports"][0]["target"])
+        self.assertEqual(result["reports"][0]["provenance"]["native_target"], "iOS")
+        self.assertEqual(result["runtime_status"], "not_verified")
+
+    def test_v2_invalid_hashes_states_targets_and_private_fields_are_rejected(self):
+        changes = [
+            ("source", {"hash": "abc"}), ("source", {"hash": "0" * 32}),
+            ("source", {"hash": "z" * 32}), ("source", {"hash": "a" * 64}),
+            ("source", {"state": "saved", "hash": ""}),
+            ("source", {"state": "modified"}), ("source", {"state": "unsaved"}),
+            ("source", {"state": "unknown"}), ("source", {"kind": {}}),
+            ("source", {"hash_algorithm": "sha256"}),
+            ("source", {"path": "/private/source.prefab"}),
+            ("provenance", {"collector": "funavatar.blender_report"}),
+            ("provenance", {"collector_version": "/private/tool"}),
+            ("provenance", {"native_target": "https://private.example"}),
+            ("provenance", {"packages_state": "unknown"}),
+            ("provenance", {"packages": [{"name": "com.vrchat.avatars", "version": "file:/private/package"}]}),
+            ("provenance", {"packages": [{"name": "com.vrchat.avatars", "version": "3.10.1", "path": "/private"}]}),
+            ("provenance", {"packages": [self.provenance()["packages"][0]] * 2}),
+            ("report", {"target": "pc"}), ("report", {"target": "both"}),
+            ("report", {"schema_version": 3}), ("report", {"provenance": None}),
+        ]
+        valid = {"schema_version": 2, "tool": "unity", "tool_version": "2022.3.22f1",
+                 "subject": "Avatar", "observations": {}, "provenance": self.provenance()}
+        for section, fields in changes:
+            with self.subTest(section=section, fields=fields):
+                fixture = copy.deepcopy(valid)
+                part = fixture if section == "report" else fixture["provenance"] if section == "provenance" else fixture["provenance"]["source"]
+                part.update(fields)
+                with self.assertRaises(ValueError):
+                    checks.validate_report(fixture)
 
     def test_missing_observations_are_unverified_and_do_not_execute_runtime(self):
         report = self.report()

@@ -4,13 +4,43 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor;
+using PackageInfo = UnityEditor.PackageManager.PackageInfo;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace FunAvatar
 {
     public static class FunAvatarReport
     {
+        [Serializable]
+        public sealed class Source
+        {
+            public string kind = "unity_scene";
+            public string state = "unknown";
+            public string hash_algorithm = "unity_dependency_hash128";
+            public string hash = "";
+        }
+
+        [Serializable]
+        public sealed class PackageVersion
+        {
+            public string name;
+            public string version;
+        }
+
+        [Serializable]
+        public sealed class Provenance
+        {
+            public string collector = "funavatar.unity_report";
+            public string collector_version = "2.0.0";
+            public string native_target;
+            public Source source = new Source();
+            public string packages_state = "unknown";
+            public PackageVersion[] packages = new PackageVersion[0];
+        }
+
         [Serializable]
         public sealed class Observations
         {
@@ -28,11 +58,12 @@ namespace FunAvatar
         [Serializable]
         public sealed class Report
         {
-            public int schema_version = 1;
+            public int schema_version = 2;
             public string tool = "unity";
             public string tool_version;
             public string subject;
             public Observations observations = new Observations();
+            public Provenance provenance;
         }
 
         [MenuItem("Tools/FunAvatar/Export selected avatar observations")]
@@ -78,7 +109,7 @@ namespace FunAvatar
         {
             if (root == null) throw new ArgumentNullException("root");
             var report = new Report { tool_version = Application.unityVersion,
-                subject = SafeSubject(root.name) };
+                subject = SafeSubject(root.name), provenance = CollectProvenance(root) };
             Observations facts = report.observations;
             Transform[] hierarchy = root.GetComponentsInChildren<Transform>(true);
             var descriptors = new List<Component>();
@@ -158,6 +189,74 @@ namespace FunAvatar
                     }
             }
             return report;
+        }
+
+        private static Provenance CollectProvenance(GameObject root)
+        {
+            var result = new Provenance { native_target = EditorUserBuildSettings.activeBuildTarget.ToString() };
+            try
+            {
+                var packages = new SortedDictionary<string, string>(StringComparer.Ordinal);
+                foreach (PackageInfo package in PackageInfo.GetAllRegisteredPackages())
+                {
+                    // Only public SDK/engine/build-tool identities; never resolvedPath or registry URLs.
+                    if (!(package.name.StartsWith("com.unity.", StringComparison.Ordinal) ||
+                          package.name == "com.vrchat.base" || package.name == "com.vrchat.avatars" ||
+                          package.name == "nadena.dev.ndmf" || package.name == "nadena.dev.modular-avatar" ||
+                          package.name == "com.vrcfury.vrcfury")) continue;
+                    if (!Regex.IsMatch(package.name, @"^[a-z0-9][a-z0-9.-]{0,127}$")) continue;
+                    packages[package.name] = package.version != null && package.version.Length <= 128 &&
+                        Regex.IsMatch(package.version, @"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.+-]+)?$")
+                        ? package.version : "unknown";
+                }
+                var versions = new List<PackageVersion>();
+                foreach (var package in packages)
+                    versions.Add(new PackageVersion { name = package.Key, version = package.Value });
+                result.packages = versions.ToArray();
+                result.packages_state = "observed";
+            }
+            catch (Exception) { /* Unavailable package metadata stays unknown; no exception text is exported. */ }
+
+            try
+            {
+                string assetPath = AssetDatabase.GetAssetPath(root);
+                bool modified = EditorUtility.IsDirty(root);
+                var stage = PrefabStageUtility.GetCurrentPrefabStage();
+                if (stage != null && root.scene == stage.scene)
+                {
+                    assetPath = stage.assetPath;
+                    modified |= stage.scene.isDirty;
+                }
+                if (!string.IsNullOrEmpty(assetPath)) result.source.kind = "unity_asset";
+                else
+                {
+                    assetPath = root.scene.path;
+                    modified |= root.scene.isDirty;
+                }
+                if (string.IsNullOrEmpty(assetPath))
+                {
+                    result.source.state = "unsaved";
+                    return result;
+                }
+                foreach (Transform node in root.GetComponentsInChildren<Transform>(true))
+                {
+                    modified |= EditorUtility.IsDirty(node.gameObject);
+                    foreach (Component component in node.GetComponents<Component>())
+                        if (component != null) modified |= EditorUtility.IsDirty(component);
+                }
+                Hash128 hash = AssetDatabase.GetAssetDependencyHash(assetPath);
+                foreach (string dependency in AssetDatabase.GetDependencies(assetPath, true))
+                    foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(dependency))
+                        if (asset != null) modified |= EditorUtility.IsDirty(asset);
+                if (modified) result.source.state = "modified";
+                else if (hash.isValid && hash == AssetDatabase.GetAssetDependencyHash(assetPath))
+                {
+                    result.source.state = "saved";
+                    result.source.hash = hash.ToString();
+                }
+            }
+            catch (Exception) { /* A missing/unreadable source remains unknown, without a saved fingerprint. */ }
+            return result;
         }
 
         private static void CheckController(RuntimeAnimatorController controller, GameObject root,

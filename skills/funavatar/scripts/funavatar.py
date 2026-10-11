@@ -430,6 +430,11 @@ def parser() -> argparse.ArgumentParser:
     project = commands.add_parser("project-check", help="Check supplied native JSON reports; runtime remains unverified (exit 1 fail, 3 review, 2 invalid)")
     project.add_argument("reports", nargs="+", metavar="REPORT")
     project.add_argument("--out", help="New JSON output file; never overwrite")
+    export = commands.add_parser("export-check", help="Inspect local model dependencies; no conversion or fetch (exit 0 complete, 1 incomplete, 3 not assessed, 2 invalid)")
+    export.add_argument("model", metavar="MODEL")
+    export.add_argument("--root", help="Export directory boundary; defaults to the model's directory")
+    export.add_argument("--declaration", help="Hash-bound native dependency declaration for an opaque format")
+    export.add_argument("--out", help="New JSON manifest; never overwrite an existing file")
     debug = commands.add_parser("debug-plan", help="Write symptom-specific steps and unverified evidence checklist; no tests executed")
     debug.add_argument("--symptom", required=True, choices=("effects", "remote", "mobile", "deformation", "pixelation", "motion", "fidelity"))
     debug.add_argument("--platform", choices=("pc", "android", "both"), default="both")
@@ -444,6 +449,11 @@ def main(argv: list[str] | None = None) -> int:
             report, code = create_plan(args), 0
         elif args.command == "check":
             report, code = check_images(args)
+        elif args.command == "export-check":
+            spec = importlib.util.spec_from_file_location("funavatar_export_bundle", Path(__file__).with_name("export_bundle.py"))
+            helpers = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(helpers)
+            report, code = helpers.export_check(args.model, args.root, args.declaration, args.out)
         else:
             spec = importlib.util.spec_from_file_location("funavatar_project_checks", Path(__file__).with_name("project_checks.py"))
             helpers = importlib.util.module_from_spec(spec)

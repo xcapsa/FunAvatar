@@ -1,0 +1,6 @@
+{
+  "name": "FunAvatar.Editor.Tests",
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

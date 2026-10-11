@@ -40,6 +40,9 @@ tools do not replace Unity/SDK/client validation.
    actually present**, with UVs, color-space/channel conventions and material
    assignments. Keep sidecars or pack assets deliberately. Rebuild target
    shaders; neither FBX nor PBR maps preserve an arbitrary node graph.
+   Run [the export dependency check](export-bundles.md) before handoff. It hashes
+   the model and discovered sidecars; missing files block file completeness.
+   A complete file inventory still needs native reimport and material/rig review.
 3. Record units, measured height, axes/forward direction, transforms and origin.
    Preserve skeleton hierarchy, bind/rest pose, bone names, weights, shape keys
    and named animation clips when supplied. Static OBJ/STL cannot substitute for
@@ -53,7 +56,9 @@ tools do not replace Unity/SDK/client validation.
    ```
 
    Register textures and a provenance/settings JSON as additional assets and
-   dependencies. Include tool/provider, version, license/source, known task ID,
+   use their IDs as parents of the exported revision, so changed sidecars make
+   its evidence stale. Keep the export-check manifest as evidence for that exact
+   file set. Include tool/provider, version, license/source, known task ID,
    settings and unknown costs. The `asset` command hashes regular files; it
    neither converts nor validates them. Do not pass another provider's job to
    Tripo's `plan`, `submit` or `resume` commands.

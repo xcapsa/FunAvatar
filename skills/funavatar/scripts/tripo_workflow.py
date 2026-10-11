@@ -263,6 +263,19 @@ class Workflow:
             raise WorkflowError("Unknown job identifier")
         return data["jobs"][job_id]
 
+    def _output_status(self, data, job):
+        if not job["output_assets"]:
+            return job.get("output_status", "not_available" if job["operation"] == "rig_check" else "not_downloaded")
+        for asset_id in job["output_assets"]:
+            asset = data["artifacts"].get(asset_id)
+            if not asset or not Path(asset["path"]).exists():
+                return "missing"
+            try:
+                self._asset(data, asset_id)
+            except (OSError, WorkflowError):
+                return "mismatch"
+        return "materialized"
+
     @staticmethod
     def _committed(data):
         return sum((credits(job["charged_credits"]) if job.get("charged_credits") is not None
@@ -301,6 +314,7 @@ class Workflow:
                            "scope": "local reservations and observed charges; no provider-side spending cap"},
                 "jobs": [{"id": j["id"], "operation": j["operation"], "status": j["status"], "task_id": j["task_id"],
                           "max_credits": j["max_credits"], "charged_credits": j["charged_credits"], "output_assets": j["output_assets"],
+                          "output_status": self._output_status(data, j),
                           "last_error": j.get("last_error")}
                          for j in data["jobs"].values()],
                 "artifacts": artifacts,
@@ -562,6 +576,7 @@ class Workflow:
                     job["status"] = "unknown_submission"
                     self._save(data)
                 return {"id": job_id, "status": job["status"], "task_id": None, "request_sent": False,
+                        "output_status": self._output_status(data, job),
                         "last_error": job.get("last_error")}
             try:
                 task = client.get_task(job["task_id"])
@@ -598,50 +613,87 @@ class Workflow:
                 if observed > credits(job["max_credits"]) or self._committed(data) > credits(data["budget"]["limit_credits"]):
                     data["budget"]["blocked"] = True
                     job["budget_overrun"] = True
+            output = task.get("output")
+            url = output.get("model_url") if isinstance(output, dict) else None
+            if job["status"] == "success" and not job["output_assets"]:
+                if job.get("output_status") != "mismatch":
+                    job["output_status"] = "not_downloaded" if isinstance(url, str) and url else "not_available"
+            else:
+                job["output_status"] = self._output_status(data, job)
             self._save(data)  # Save task/charge before attempting a fallible download.
             if job["status"] == "success" and download:
-                for asset_id in job["output_assets"]:
-                    self._asset(data, asset_id)
-                if not job["output_assets"]:
-                    output = task.get("output") or {}
-                    url = output.get("model_url")
-                    if url:
+                try:
+                    if job["output_status"] == "mismatch" and not job["output_assets"]:
+                        raise WorkflowError("A mismatched output requires verified explicit adoption before reuse")
+                    for asset_id in job["output_assets"]:
+                        self._asset(data, asset_id)
+                    if not job["output_assets"] and not (job["operation"] == "rig_check" and url is None):
+                        if not isinstance(url, str) or not url:
+                            raise WorkflowError("Successful task has no primary downloadable model")
                         suffix = Path(urlsplit(url).path).suffix.lower()
                         if suffix not in (".glb", ".gltf", ".fbx", ".obj", ".stl", ".zip", ".usdz", ".3mf"):
                             suffix = ".bin"
                         destination = self.path.parent / "artifacts" / f"{job_id}-model{suffix}"
+                        asset_id = f"{job_id}-model"
+                        if asset_id in data["artifacts"]:
+                            raise WorkflowError("Output asset ID already exists")
                         if destination.parent.is_symlink():
                             raise WorkflowError("Output directory must not be a symlink")
                         destination.parent.mkdir(exist_ok=True)
                         if destination.exists() or destination.is_symlink():
                             raise WorkflowError("Unrecorded output already exists; preserve it and register it explicitly with adopt-output")
-                        client.download(url, destination)
+                        downloaded = client.download(url, destination)
                         record = file_record(destination)
-                        asset_id = f"{job_id}-model"
-                        if asset_id in data["artifacts"]:
-                            raise WorkflowError("Output asset ID already exists")
+                        if (not isinstance(downloaded, dict) or not record["bytes"]
+                                or any(downloaded.get(key) != record[key] for key in ("path", "sha256", "bytes"))
+                                or type(downloaded.get("bytes")) is not int):
+                            job["output_status"] = "mismatch"
+                            raise WorkflowError("Downloaded file does not match its measured transport record")
                         data["artifacts"][asset_id] = {"id": asset_id, "stage": OUTPUT_STAGES.get(job["operation"], "report"),
                                                       **record, "parents": list(job["input_hashes"]), "gates": {}, "upload": None,
                                                       "provider_task_id": job["task_id"]}
                         job["output_assets"].append(asset_id)
-                        self._save(data)
+                    job["output_status"] = self._output_status(data, job)
+                    if job["output_status"] == "materialized" and (job.get("last_error") or {}).get("stage") == "download":
+                        job.pop("last_error")
+                    self._save(data)
+                except APIError as exc:
+                    job["last_error"] = _diagnostic("download", job["operation"], exc)
+                    self._save(data)
+                    raise _safe_api_error(exc, job["last_error"]) from None
+                except BaseException as exc:
+                    job["last_error"] = _diagnostic("download", job["operation"], exc)
+                    self._save(data)
+                    if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                        raise
+                    raise WorkflowError(job["last_error"]["message"]) from None
             return {"id": job_id, "status": job["status"], "task_id": job["task_id"],
-                    "charged_credits": job["charged_credits"], "output_assets": job["output_assets"], "budget_blocked": data["budget"]["blocked"],
+                    "charged_credits": job["charged_credits"], "output_assets": job["output_assets"],
+                    "output_status": job["output_status"], "budget_blocked": data["budget"]["blocked"],
                     "last_error": job.get("last_error")}
 
     def adopt_output(self, job_id, path, note):
         note = text(note, "output provenance note")
         record = file_record(path)
+        if not record["bytes"]:
+            raise WorkflowError("Cannot adopt an empty model file")
         with self._lock():
             data = self.read_json()
             job = self._job(data, job_id)
             asset_id = f"{job_id}-model"
             if job["status"] != "success" or job["output_assets"] or asset_id in data["artifacts"]:
                 raise WorkflowError("Adoption requires a successful job without a registered model")
+            for input_id, digest in job["input_hashes"].items():
+                if self._asset(data, input_id)["sha256"] != digest:
+                    raise WorkflowError("Job inputs no longer match the planned revision")
             data["artifacts"][asset_id] = {"id": asset_id, "stage": OUTPUT_STAGES.get(job["operation"], "generation"),
                                           **record, "parents": list(job["input_hashes"]), "gates": {}, "upload": None,
                                           "provider_task_id": job["task_id"], "provenance_note": note}
+            self._asset(data, asset_id)
             job["output_assets"].append(asset_id)
+            job["output_status"] = "materialized"
+            if (job.get("last_error") or {}).get("stage") == "download":
+                job.pop("last_error")
             self._save(data)
             return {"asset": asset_id, "status": "adopted", "sha256": record["sha256"]}
 

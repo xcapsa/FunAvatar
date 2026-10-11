@@ -414,6 +414,220 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("secret_download_signature", self.wf.path.read_text(encoding="utf-8"))
         self.assertEqual(len(self.client.submissions), 1)
 
+    def test_download_failure_diagnosis_is_durable_and_retry_uses_only_the_known_task(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({
+            "status": "success", "credits_consumed": "4",
+            "output": {"model_url": "https://models.example.org/model.glb?signature=private-signature"},
+        })
+        with patch.object(self.client, "download", side_effect=workflow_module.APIError(
+                "private body https://private.example/?token=secret", status=503, code=2017)), \
+                self.assertRaises(workflow_module.APIError) as raised:
+            self.wf.resume("draft", self.client)
+        job = self.reopen().read_json()["jobs"]["draft"]
+        diagnostic = job["last_error"]
+        self.assertEqual((diagnostic["stage"], diagnostic["operation"], diagnostic["type"]),
+                         ("download", "text_to_model", "APIError"))
+        self.assertEqual((diagnostic["http_status"], diagnostic["provider_code"]), (503, 2017))
+        self.assertEqual((job["status"], job["task_id"], job["output_status"]),
+                         ("success", "task_1", "not_downloaded"))
+        self.assertEqual((job["max_credits"], job["charged_credits"]), ("6.00", "4.00"))
+        self.assertEqual(job["output_assets"], [])
+        before = self.wf.path.read_bytes()
+        self.assertEqual(self.wf.summary()["jobs"][0]["last_error"], diagnostic)
+        self.assertEqual(self.wf.path.read_bytes(), before)
+        self.assertEqual(self.wf.resume("draft", self.client, download=False)["last_error"], diagnostic)
+        result = self.reopen().resume("draft", self.client)
+        self.assertEqual(result["output_status"], "materialized")
+        self.assertIsNone(result["last_error"])
+        self.assertEqual(self.client.lookups, ["task_1", "task_1", "task_1"])
+        self.assertEqual(len(self.client.submissions), 1)
+        self.assertEqual(len(self.client.downloads), 1)
+        self.assertEqual(self.wf.summary()["budget"]["committed_credits"], "4.00")
+        for content in (str(raised.exception), self.wf.path.read_text()):
+            for secret in ("private body", "private.example", "token=secret", "private-signature"):
+                self.assertNotIn(secret, content)
+
+    def test_download_io_and_unexpected_exceptions_never_copy_message_or_class_name(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "success", "output": {
+            "model_url": "https://models.example.org/model.glb"}})
+        private_type = type("PrivatePromptClass", (RuntimeError,), {})
+        for failure, expected in ((OSError("private-path-token"), "OSError"),
+                                  (private_type("private-path-token"), "UnexpectedError")):
+            with self.subTest(error=expected), patch.object(self.client, "download", side_effect=failure), \
+                    self.assertRaises(workflow_module.WorkflowError) as raised:
+                self.reopen().resume("draft", self.client)
+            job = self.wf.read_json()["jobs"]["draft"]
+            self.assertEqual((job["last_error"]["stage"], job["last_error"]["type"]), ("download", expected))
+            self.assertEqual(job["max_credits"], "6.00")
+            self.assertIsNone(job["charged_credits"])
+            self.assertEqual(self.wf.summary()["budget"]["committed_credits"], "6.00")
+            for content in (self.wf.path.read_text(), str(raised.exception)):
+                self.assertNotIn("private-path-token", content)
+                self.assertNotIn("PrivatePromptClass", content)
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_successful_download_keeps_an_earlier_poll_diagnosis_historical(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        with patch.object(self.client, "get_task", side_effect=workflow_module.APIError("private", status=429)), \
+                self.assertRaises(workflow_module.APIError):
+            self.wf.resume("draft", self.client)
+        previous = self.wf.read_json()["jobs"]["draft"]["last_error"]
+        self.client.tasks["task_1"].update({"status": "success", "output": {
+            "model_url": "https://models.example.org/model.glb"}})
+        result = self.reopen().resume("draft", self.client)
+        self.assertEqual(result["output_status"], "materialized")
+        self.assertEqual(result["last_error"], previous)
+
+    def test_success_with_missing_or_malformed_primary_output_is_not_materialized(self):
+        for index, output in enumerate((None, [], "private output", {}, {"model_url": []}, {"model_url": False})):
+            with self.subTest(output=index):
+                job_id = f"missing-{index}"
+                self.plan(job_id, "1")
+                task_id = self.wf.submit(job_id, self.client)["task_id"]
+                self.client.tasks[task_id].update({"status": "success", "credits_consumed": "0", "output": output})
+                with self.assertRaises(workflow_module.WorkflowError):
+                    self.wf.resume(job_id, self.client)
+                job = self.reopen().read_json()["jobs"][job_id]
+                self.assertEqual((job["status"], job["output_status"]), ("success", "not_available"))
+                self.assertEqual(job["last_error"]["stage"], "download")
+                self.assertEqual(job["output_assets"], [])
+        self.assertEqual(self.client.downloads, [])
+        self.assertNotIn("private output", self.wf.path.read_text())
+
+    def test_rig_check_report_without_model_is_successful_but_not_materialized(self):
+        self.asset()
+        self.wf.upload("mesh", self.client)
+        self.wf.plan_job("check", "rig_check", {"input": {"asset_id": "mesh"}}, "0",
+                         input_ids=["mesh"], pricing_note="Offline zero-credit rig check")
+        self.wf.submit("check", self.client)
+        self.client.tasks["task_1"].update({"status": "success", "output": {"riggable": True}})
+        result = self.reopen().resume("check", self.client)
+        self.assertEqual((result["status"], result["output_status"]), ("success", "not_available"))
+        self.assertEqual(result["output_assets"], [])
+        self.assertIsNone(result["last_error"])
+        self.assertEqual(self.client.downloads, [])
+
+    def test_download_transport_hash_mismatch_preserves_file_and_blocks_automatic_reuse(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "success", "output": {
+            "model_url": "https://models.example.org/model.glb"}})
+        original = self.client.download
+
+        def mismatched(url, destination):
+            record = original(url, destination)
+            return {**record, "sha256": "0" * 64}
+
+        with patch.object(self.client, "download", side_effect=mismatched):
+            with self.assertRaises(workflow_module.WorkflowError):
+                self.wf.resume("draft", self.client)
+        job = self.reopen().read_json()["jobs"]["draft"]
+        self.assertEqual(job["output_status"], "mismatch")
+        self.assertEqual(job["output_assets"], [])
+        output = self.wf.path.parent / "artifacts" / "draft-model.glb"
+        self.assertEqual(output.read_bytes(), b"offline mock GLB asset")
+        with self.assertRaises(workflow_module.WorkflowError):
+            self.wf.resume("draft", self.client)
+        self.assertEqual(self.wf.read_json()["jobs"]["draft"]["output_status"], "mismatch")
+        self.client.tasks["task_1"]["output"]["model_url"] = "https://models.example.org/model.fbx"
+        with self.assertRaises(workflow_module.WorkflowError):
+            self.reopen().resume("draft", self.client)
+        self.assertFalse(output.with_suffix(".fbx").exists())
+        self.assertEqual(output.read_bytes(), b"offline mock GLB asset")
+        self.assertEqual(len(self.client.downloads), 1)
+        self.assertEqual(len(self.client.submissions), 1)
+        self.wf.adopt_output("draft", output, "Verified the preserved complete file against this exact task")
+        result = self.reopen().resume("draft", self.client)
+        self.assertEqual(result["output_status"], "materialized")
+        self.assertIsNone(result["last_error"])
+        self.assertEqual(len(self.client.downloads), 1)
+
+    def test_output_adoption_rejects_changed_or_mismatched_planned_input_without_mutation(self):
+        original_download = self.client.download
+
+        def committed_then_failed(url, destination):
+            original_download(url, destination)
+            raise OSError("offline interruption after file commit")
+
+        for case in ("changed_file", "planned_hash"):
+            with self.subTest(case=case):
+                source = self.asset(case)
+                self.wf.upload(case, self.client)
+                self.wf.plan_job(case, "texture", {"input": {"asset_id": case}, "model": "v3.1-20260211"}, "1",
+                                 input_ids=[case], pricing_note="Offline test ceiling")
+                task_id = self.wf.submit(case, self.client)["task_id"]
+                self.client.tasks[task_id].update({"status": "success", "credits_consumed": "0", "output": {
+                    "model_url": "https://models.example.org/model.glb"}})
+                with patch.object(self.client, "download", side_effect=committed_then_failed), \
+                        self.assertRaises(workflow_module.WorkflowError):
+                    self.wf.resume(case, self.client)
+                if case == "changed_file":
+                    source.write_bytes(b"changed after generation")
+                else:
+                    data = self.wf.read_json()
+                    data["jobs"][case]["input_hashes"][case] = "0" * 64
+                    self.wf._save(data)
+                output = self.wf.path.parent / "artifacts" / f"{case}-model.glb"
+                before = self.wf.path.read_bytes(), output.read_bytes()
+                with self.assertRaises(workflow_module.WorkflowError):
+                    self.reopen().adopt_output(case, output, "Preserved output needs unchanged input provenance")
+                self.assertEqual(before, (self.wf.path.read_bytes(), output.read_bytes()))
+                job = self.wf.read_json()["jobs"][case]
+                self.assertEqual(job["output_assets"], [])
+                self.assertEqual(job["last_error"]["stage"], "download")
+                self.assertEqual(job["charged_credits"], "0.00")
+        self.assertEqual(len(self.client.submissions), 2)
+
+    def test_partial_download_is_preserved_unregistered_and_never_overwritten(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "success", "output": {
+            "model_url": "https://models.example.org/model.glb"}})
+
+        def partial(url, destination):
+            Path(destination).write_bytes(b"interrupted partial file")
+            raise OSError("private partial path and token")
+
+        with patch.object(self.client, "download", side_effect=partial) as download:
+            for _ in range(2):
+                with self.assertRaises(workflow_module.WorkflowError):
+                    self.reopen().resume("draft", self.client)
+        output = self.wf.path.parent / "artifacts" / "draft-model.glb"
+        self.assertEqual(output.read_bytes(), b"interrupted partial file")
+        self.assertEqual(download.call_count, 1)
+        self.assertEqual(self.wf.read_json()["jobs"]["draft"]["output_assets"], [])
+        self.assertNotIn("private partial", self.wf.path.read_text())
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_existing_file_or_symlink_is_preserved_without_downloading(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "success", "output": {
+            "model_url": "https://models.example.org/model.glb"}})
+        folder = self.wf.path.parent / "artifacts"
+        folder.mkdir()
+        output = folder / "draft-model.glb"
+        original = self.base / "original.glb"
+        original.write_bytes(b"preserved original")
+        for symlink in (False, True):
+            with self.subTest(symlink=symlink):
+                if symlink:
+                    output.symlink_to(original)
+                else:
+                    output.write_bytes(b"unrecorded output")
+                with self.assertRaises(workflow_module.WorkflowError):
+                    self.reopen().resume("draft", self.client)
+                self.assertEqual(output.read_bytes(), b"preserved original" if symlink else b"unrecorded output")
+                self.assertEqual(original.read_bytes(), b"preserved original")
+                self.assertEqual(self.wf.read_json()["jobs"]["draft"]["output_assets"], [])
+                output.unlink()
+        self.assertEqual(self.client.downloads, [])
+
     def test_uncertain_submission_blocks_other_paid_jobs_even_with_remaining_budget(self):
         self.plan("uncertain", "1")
         self.plan("other", "1")
@@ -569,10 +783,44 @@ class WorkflowTests(unittest.TestCase):
         self.wf.resume("draft", self.client)
         asset = self.wf.read_json()["artifacts"]["draft-model"]
         Path(asset["path"]).write_bytes(b"edited after download")
+        before = self.wf.path.read_bytes()
+        self.assertEqual(self.reopen().summary()["jobs"][0]["output_status"], "mismatch")
+        self.assertEqual(self.wf.path.read_bytes(), before)
         with self.assertRaises(ValueError):
             self.reopen().resume("draft", self.client)
+        self.assertEqual(self.wf.read_json()["jobs"]["draft"]["last_error"]["stage"], "download")
         self.assertEqual(len(self.client.downloads), 1)
         self.assertEqual(Path(asset["path"]).read_bytes(), b"edited after download")
+
+    def test_missing_registered_output_is_visible_offline_and_never_redownloaded(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "success", "output": {
+            "model_url": "https://models.example.org/model.glb"}})
+        self.wf.resume("draft", self.client)
+        Path(self.wf.read_json()["artifacts"]["draft-model"]["path"]).unlink()
+        before = self.wf.path.read_bytes()
+        self.assertEqual(self.reopen().summary()["jobs"][0]["output_status"], "missing")
+        self.assertEqual(self.wf.path.read_bytes(), before)
+        with self.assertRaises(workflow_module.WorkflowError):
+            self.wf.resume("draft", self.client)
+        job = self.reopen().read_json()["jobs"]["draft"]
+        self.assertEqual(job["output_status"], "missing")
+        self.assertEqual(job["last_error"]["stage"], "download")
+        self.assertEqual(len(self.client.downloads), 1)
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_empty_output_cannot_be_adopted_as_a_materialized_model(self):
+        self.plan()
+        self.wf.submit("draft", self.client)
+        self.client.tasks["task_1"].update({"status": "success"})
+        self.wf.resume("draft", self.client, download=False)
+        empty = self.base / "empty.glb"
+        empty.touch()
+        with self.assertRaises(workflow_module.WorkflowError):
+            self.wf.adopt_output("draft", empty, "Empty output is not a recovered model")
+        self.assertEqual(self.reopen().read_json()["jobs"]["draft"]["output_assets"], [])
+        self.assertEqual(empty.read_bytes(), b"")
 
     def test_download_commit_crash_is_resumed_by_explicit_output_adoption(self):
         self.plan()
@@ -588,17 +836,21 @@ class WorkflowTests(unittest.TestCase):
             raise RuntimeError("Simulated interruption after file commit")
 
         self.client.download = commit_then_crash
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(workflow_module.WorkflowError):
             self.wf.resume("draft", self.client)
         job = self.reopen().read_json()["jobs"]["draft"]
         self.assertEqual(job["status"], "success")
         self.assertEqual(Decimal(job["charged_credits"]), Decimal("4"))
         self.assertEqual(job["output_assets"], [])
+        self.assertEqual(job["last_error"]["stage"], "download")
+        self.assertEqual(job["last_error"]["type"], "UnexpectedError")
         with self.assertRaises(ValueError):
             self.wf.resume("draft", self.client)
         output = self.wf.path.parent / "artifacts" / "draft-model.glb"
         self.wf.adopt_output("draft", output, "Recovered the fully committed output from this exact task")
-        self.reopen().resume("draft", self.client)
+        result = self.reopen().resume("draft", self.client)
+        self.assertIsNone(result["last_error"])
+        self.assertEqual(result["output_status"], "materialized")
         self.assertEqual(self.wf.read_json()["jobs"]["draft"]["output_assets"], ["draft-model"])
         self.assertEqual(len(self.client.downloads), 1)
         self.assertEqual(len(self.client.submissions), 1)

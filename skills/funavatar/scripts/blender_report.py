@@ -9,10 +9,40 @@ operator calls are made. Only temporary evaluated meshes are allocated and freed
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
 import sys
+
+COLLECTOR_VERSION = "2.0.0"
+
+
+def source_provenance(bpy):
+    source = {"kind": "blend_file", "state": "unknown", "hash_algorithm": "sha256", "hash": ""}
+    data = getattr(bpy, "data", None)
+    filename = getattr(data, "filepath", "")
+    if not filename:
+        source["state"] = "unsaved"
+    elif getattr(data, "is_dirty", None) is True:
+        source["state"] = "modified"
+    elif getattr(data, "is_dirty", None) is False:
+        try:
+            path = Path(filename)
+            before = path.stat()
+            digest = hashlib.sha256()
+            with path.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            after = path.stat()
+            if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) == (
+                    after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
+                source.update(state="saved", hash=digest.hexdigest())
+        except OSError:
+            pass  # Missing/unreadable source remains unknown, without a stale hash.
+    return {"collector": "funavatar.blender_report", "collector_version": COLLECTOR_VERSION,
+            "native_target": "not_applicable", "source": source,
+            "packages_state": "not_applicable", "packages": []}
 
 
 def safe_subject(name):
@@ -98,8 +128,9 @@ def collect_report(bpy, root_name=None):
     observations.update(totals)
     if weights and weights_available:
         observations["unweighted_vertices"] = sum(weights)
-    return {"schema_version": 1, "tool": "blender", "tool_version": bpy.app.version_string,
-            "subject": safe_subject(subject), "observations": observations}
+    return {"schema_version": 2, "tool": "blender", "tool_version": bpy.app.version_string,
+            "subject": safe_subject(subject), "observations": observations,
+            "provenance": source_provenance(bpy)}
 
 
 def main(argv=None, bpy_module=None):

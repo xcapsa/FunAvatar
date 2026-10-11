@@ -2,6 +2,7 @@
 
 from contextlib import redirect_stderr, redirect_stdout
 import importlib.util
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -62,8 +63,8 @@ def object_fixture(name="Body", kind="MESH", *, scale=(1, 1, 1), vertices=None,
     return result
 
 
-def fake_bpy(*objects, scene_name="AvatarScene"):
-    return Item(app=Item(version_string="4.2.0"), context=Item(
+def fake_bpy(*objects, scene_name="AvatarScene", data=None):
+    return Item(app=Item(version_string="4.2.0"), data=data or Item(filepath="", is_dirty=False), context=Item(
         scene=Item(name=scene_name, objects=Objects(objects)),
         evaluated_depsgraph_get=lambda: "native graph"))
 
@@ -78,13 +79,60 @@ class BlenderReportTests(unittest.TestCase):
         static = object_fixture("Accessory", triangles=2)
         report = blender_report.collect_report(fake_bpy(body, rig, static))
         self.assertEqual(report["tool"], "blender")
-        self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["schema_version"], 2)
         self.assertEqual(report["observations"], dict(mesh_count=2, armature_count=1,
             triangle_count=5, zero_area_faces=1, nonfinite_vertices=1,
             nonuniform_scale_objects=1, unweighted_vertices=3))
         self.assertTrue(body.evaluated_mesh.triangulated)
         self.assertEqual(body.cleared, 1)
         self.assertEqual(body.data.vertices[0].groups[0].weight, 0.8)
+
+    def test_saved_source_hash_is_deterministic_changes_with_file_and_omits_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "private-avatar.blend"
+            path.write_bytes(b"saved source fixture")
+            module = fake_bpy(object_fixture(), data=Item(filepath=str(path), is_dirty=False))
+            first = blender_report.collect_report(module)
+            second = blender_report.collect_report(module)
+            self.assertEqual(first["provenance"], second["provenance"])
+            source = first["provenance"]["source"]
+            self.assertEqual(source["state"], "saved")
+            self.assertEqual(source["hash_algorithm"], "sha256")
+            self.assertEqual(source["hash"], hashlib.sha256(path.read_bytes()).hexdigest())
+            self.assertNotIn(str(path), json.dumps(first))
+            self.assertNotIn("private-avatar", json.dumps(first))
+            path.write_bytes(b"different saved source fixture")
+            self.assertNotEqual(source["hash"], blender_report.collect_report(module)["provenance"]["source"]["hash"])
+
+    def test_modified_unsaved_missing_or_unknown_source_has_no_current_hash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "saved.blend"
+            path.write_bytes(b"saved file must remain unchanged")
+            for data, state in ((Item(filepath=str(path), is_dirty=True), "modified"),
+                                (Item(filepath="", is_dirty=True), "unsaved"),
+                                (Item(filepath=str(path / "missing"), is_dirty=False), "unknown"),
+                                (Item(filepath=str(path)), "unknown")):
+                with self.subTest(state=state):
+                    provenance = blender_report.collect_report(fake_bpy(object_fixture(), data=data))["provenance"]
+                    self.assertEqual(provenance["source"]["state"], state)
+                    self.assertEqual(provenance["source"]["hash"], "")
+                    self.assertEqual(provenance["native_target"], "not_applicable")
+                    self.assertEqual(provenance["packages_state"], "not_applicable")
+                    self.assertEqual(provenance["packages"], [])
+            self.assertEqual(path.read_bytes(), b"saved file must remain unchanged")
+
+    def test_blender_v2_output_is_accepted_without_certifying_runtime(self):
+        helper_spec = importlib.util.spec_from_file_location("checks_from_collector", SCRIPT.with_name("project_checks.py"))
+        helper = importlib.util.module_from_spec(helper_spec)
+        helper_spec.loader.exec_module(helper)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "native.json"
+            report = blender_report.collect_report(fake_bpy(object_fixture()))
+            path.write_text(json.dumps(report))
+            checked, _ = helper.project_check([str(path)])
+            self.assertEqual(checked["reports"][0]["provenance"], report["provenance"])
+            self.assertEqual(checked["reports"][0]["source_schema_version"], 2)
+            self.assertEqual(checked["runtime_status"], "not_verified")
 
     def test_root_scopes_descendants_and_avoids_absolute_subject_paths(self):
         root = object_fixture("/Avatar\\Root", "EMPTY")
