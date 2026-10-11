@@ -13,6 +13,16 @@
     "reviewed_export_with_material_dependencies",
     "target_unity_prefab_clips_controller_and_sdk_configuration"
   ],
+  "reference_reconstruction": {
+    "intent": "faithful_reconstruction",
+    "reference_set": null,
+    "visible_constraints": [],
+    "inferred_hidden_regions": [],
+    "conflicts_and_resolutions": [],
+    "blockout_review": null,
+    "fidelity_review": null,
+    "production_status": "awaiting_fidelity_review"
+  },
   "visual_acceptance": {
     "reference_fidelity": "not_assessed",
     "unintended_boxy_silhouette_or_faceting": "needs_inspection",

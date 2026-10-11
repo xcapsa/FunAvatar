@@ -1,12 +1,12 @@
 # Tracking, complete animation and environment response
 
-Use for a character that must move with its wearer, animate fully, and have responsive clothing. Deliver an actual skinned character matching the approved design, with separated usable fingers and deforming garments; a static mesh, posed render, cube mannequin or component inventory cannot satisfy that request.
+Use for a character that must move with its wearer, animate fully, and have responsive clothing. Deliver an actual skinned character matching the approved design, with the intended limb/digit anatomy and deforming garments where present; a static mesh, posed render, cube mannequin or component inventory cannot satisfy that request.
 
 Keep three systems separate: **rig/skinning**, **input/IK and animation**, and **secondary physics/environment response**. Inspect an existing implementation before replacing it. The sources below were checked on 2026-10-11; recheck installed SDK behavior and current guidance at implementation time.
 
 ## Rig and real tracking input
 
-In Unity, inspect Humanoid mapping, bind/T-pose, scale and weights on the final imported mesh. Map the intended optional bones as well as required bones; a valid auto-map does not establish correct deformation. Inspect both hands' actual finger mapping, then preview opening, closing and splay with suitable muscle ranges. [Unity Humanoid import](https://docs.unity3d.com/2022.3/Documentation/Manual/ConfiguringtheAvatar.html) explains mapping; [VRChat Skeletal Input](https://docs.vrchat.com/docs/steamvr-input-20) explains finger-muscle tuning.
+For a humanoid-compatible character and input route, inspect Unity Humanoid mapping, bind/T-pose, scale and weights on the final imported mesh. For quadrupeds or other anatomy, preserve the reference and define the target-supported rig and wearer-input mapping explicitly; do not reshape the character or add fingers just to fit a humanoid default. Map the intended optional bones as well as required bones; a valid auto-map does not establish correct deformation. Inspect both hands' actual finger mapping, then preview opening, closing and splay with suitable muscle ranges. [Unity Humanoid import](https://docs.unity3d.com/2022.3/Documentation/Manual/ConfiguringtheAvatar.html) explains mapping; [VRChat Skeletal Input](https://docs.vrchat.com/docs/steamvr-input-20) explains finger-muscle tuning.
 
 Finger bones do not supply tracking data. Distinguish controller-generated/estimated finger poses, hardware skeletal finger data, and actual controller-free hand tracking. SteamVR full hand tracking needs compatible hardware and a supplying driver; its Input 2.0 route does not apply to native Quest. Preserve gesture/menu fallbacks and record the exact headset, controllers/cameras/gloves, driver, client and settings actually tested.
 

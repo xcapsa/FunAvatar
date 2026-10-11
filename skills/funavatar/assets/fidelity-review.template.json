@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "intent": "faithful_reconstruction",
+  "asset": {
+    "path": "model/master.blend",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "reference_set": {
+    "path": "reference-set.json",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "comparisons": [],
+  "categories": {
+    "silhouette": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    },
+    "proportions": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    },
+    "head_and_hair": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    },
+    "outfit": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    },
+    "materials": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    },
+    "side_specific_details": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    },
+    "branding": {
+      "status": "not_assessed",
+      "note": "Not compared against the bound primary references yet.",
+      "reference_ids": []
+    }
+  },
+  "user_rejection": {
+    "rejected": false,
+    "note": "No user rejection has been recorded; update this from the actual conversation."
+  }
+}

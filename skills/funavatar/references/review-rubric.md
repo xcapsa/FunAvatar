@@ -32,4 +32,4 @@ Final status should distinguish:
 - **Modeling reference reviewed:** relevant visual checks passed or remaining limitations are explicit.
 - **3D/runtime status untested:** mandatory for image-only output; never infer it from a polished reference sheet.
 
-If a 3D conversion or imported model is supplied, also apply the [image-to-3D fidelity gate](technical-handoff.md#image-to-3d-fidelity-gate). A passing concept review does not approve its reconstruction. Compare actual model views before rigging/effects; retain reference fidelity as unverified without that evidence.
+For any 3D reconstruction, including native Blender code and imported/generated models, apply [reference reconstruction](reference-reconstruction.md). A passing concept review does not approve its reconstruction. Compare actual model views before production rigging/effects; retain reference fidelity as unverified without that evidence. Record mismatches even when mesh, bones, exports or tests are technically valid. Never use a previous review after the bound model or references change.
