@@ -92,6 +92,7 @@ The [agent pipeline](skills/funavatar/references/agent-pipeline.md) compares con
 - **Facial deformation probe:** inspects stored shape-key deltas against the real relative key inside Blender. Requested missing or empty shapes remain defects even if an upstream generator reports success. A nonzero delta is not an aesthetic or tracking certificate.
 - **Measured budget checker:** validates a dated partial Good profile, separate mobile component limits and custom parameter bits. Unknown measurements remain unknown; it does not declare an official SDK rank.
 - **OSC planner:** reads an explicit avatar config and prepares typed set/reset packets with identity and hash checks. It sends no packets, chatbox messages or audio; runtime control requires a separately authorized connector and actual client observations.
+- **Report and export evidence:** native reports include source/configuration provenance, while the export checker tracks model dependencies and file hashes. Tripo task success remains separate from a materialized, verified download.
 
 These helpers use native Blender or the Python standard library. The addition includes no copied third-party implementation, automatic server installation or avatar upload.
 
@@ -102,6 +103,7 @@ These helpers use native Blender or the Python standard library. The addition in
 - [Concept prompts](skills/funavatar/references/prompt-recipes.md) and [visual review](skills/funavatar/references/review-rubric.md)
 - [Modeling handoff and fidelity gate](skills/funavatar/references/technical-handoff.md)
 - [Blender/Unity project checks](skills/funavatar/references/project-checks.md)
+- [Export dependency manifests](skills/funavatar/references/export-bundles.md)
 - [Runtime debugging](skills/funavatar/references/runtime-debug.md)
 - [Measured performance and parameter budgets](skills/funavatar/references/performance-budgets.md)
 - [OSC inspection, plans and runtime boundaries](skills/funavatar/references/osc-runtime.md)
