@@ -2,6 +2,8 @@
 
 Use this route when the user asks the agent to **make or repair the actual 3D character**. Native production is the default: inspect the available Blender/Unity project and capabilities, then build in the tools. A concept, prompt, provider suggestion or project report does not complete a request for an editable, rigged, animated asset. Tripo and other generators are optional sources or handoffs when the user chooses them; they are not a prerequisite for native work.
 
+Read [production strategy](production-strategy.md) first for intake, inspected reference-avatar techniques, source selection and the stop/change-route rule. Native execution is not a requirement to build every shape from scratch.
+
 ## Establish a usable native workspace
 
 Identify the character, approved design or source asset, intended platform and requested animation/features. Inspect available Blender and Unity MCP tools, application control, executables, installed project packages and Editor scripting support. Use an already available native interface that can create/edit/save the project. When an MCP is absent but the executable is available, write and run a focused `bpy` script or Unity C# Editor script in the authorized project. A missing MCP alone is not a reason to stop at prompts.

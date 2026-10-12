@@ -30,7 +30,11 @@ Choose the route that matches the supplied evidence. Keep **2D concept**, **3D p
 
 For a concept handoff, read [technical-handoff.md](references/technical-handoff.md) only when implementation advice is requested. Do not load all references, models or logs by default.
 
-Native Blender/Unity authoring is the default for requested 3D creation. Use available MCP, CLI or application interfaces and focused native scripts; a missing MCP alone does not justify stopping at prompts. Read [production tools](references/production-tools.md) only when choosing a tool or interchange route. Tripo, Meshy, Rodin and suitable local generators are optional, subject to actual access, licenses and supported handoffs. When Tripo is selected, read its profile and job workflow; no provider is mandatory and no other provider's job may be sent to the Tripo adapter.
+Native Blender/Unity authoring and verification are the default for requested 3D creation; choose the source/base and construction method through the production strategy first. Use available MCP, CLI or application interfaces and focused native scripts; a missing MCP alone does not justify stopping at prompts. Read [production tools](references/production-tools.md) only when choosing a tool or interchange route. Tripo, Meshy, Rodin and suitable local generators are optional, subject to actual access, licenses and supported handoffs. When Tripo is selected, read its profile and job workflow; no provider is mandatory and no other provider's job may be sent to the Tripo adapter.
+
+## Start with a clear brief and a proven construction route
+
+Accept an image, a sufficiently specific prompt, or both. Read [production strategy](references/production-strategy.md) before authoring a new avatar or repeating failed likeness repairs. Ask only for missing decisions that change the design, required behavior or platform; reuse answers already given. Select an inspected, permitted base/component or a demonstrated modeling method before generating geometry. Blender/Unity are the authoring and verification environments; that does not require inventing every organic surface with procedural scripts. After two targeted attempts without material visual progress, stop that approach and change the construction route. Preserve the fidelity hold and completed evidence; do not keep spending on variants of the same failed shape.
 
 ## Required moving-avatar result
 
