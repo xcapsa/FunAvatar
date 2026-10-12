@@ -487,7 +487,10 @@ def inspect(source, limits=Limits()):
     budget, packages, outer = Budget(limits), [], []
     descriptor = os.open(source, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     with os.fdopen(descriptor, "rb") as stream:
-        if file_signature(os.fstat(stream.fileno())) != file_signature(before):
+        opened = os.fstat(stream.fileno())
+        # Path and handle timestamps can differ; compare each interface to itself.
+        if (not os.path.samestat(opened, before) or opened.st_size != before.st_size
+                or file_signature(source.lstat()) != file_signature(before)):
             raise StudyError("Source changed before inspection")
         digest, _ = read_hash(stream, expected=before.st_size)
         stream.seek(0)
@@ -522,7 +525,7 @@ def inspect(source, limits=Limits()):
                     outer.append(record)
         else:
             raise StudyError("Expected .zip or .unitypackage")
-        if (file_signature(os.fstat(stream.fileno())) != file_signature(before)
+        if (file_signature(os.fstat(stream.fileno())) != file_signature(opened)
                 or file_signature(source.lstat()) != file_signature(before)):
             raise StudyError("Source changed during inspection")
     if not packages:

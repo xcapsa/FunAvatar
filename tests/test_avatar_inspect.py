@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 import warnings
@@ -78,6 +79,33 @@ class PackageStudyTests(unittest.TestCase):
         source = self.source(data, name)
         with self.assertRaises((study.StudyError, OSError, ValueError, EOFError, tarfile.TarError, zipfile.BadZipFile)):
             study.inspect(source, limits or study.Limits())
+
+    def test_stable_handle_and_path_timestamp_representations_may_differ(self):
+        source = self.source()
+        original_fstat = os.fstat
+
+        def handle_stat(fd):
+            value = original_fstat(fd)
+            return SimpleNamespace(st_dev=value.st_dev, st_ino=value.st_ino,
+                st_size=value.st_size, st_mtime_ns=value.st_mtime_ns + 11,
+                st_ctime_ns=value.st_ctime_ns + 17)
+
+        with mock.patch.object(study.os, "fstat", handle_stat):
+            self.assertEqual(study.inspect(source)["summary"]["assets"], 1)
+
+    def test_opened_handle_must_still_match_source_identity(self):
+        source = self.source()
+        original_fstat = os.fstat
+
+        def different_file(fd):
+            value = original_fstat(fd)
+            return SimpleNamespace(st_dev=value.st_dev, st_ino=value.st_ino + 1,
+                st_size=value.st_size, st_mtime_ns=value.st_mtime_ns,
+                st_ctime_ns=value.st_ctime_ns)
+
+        with mock.patch.object(study.os, "fstat", different_file):
+            with self.assertRaisesRegex(study.StudyError, "Source changed before"):
+                study.inspect(source)
 
     def test_complete_inventory_preserves_source_and_omits_source_bodies(self):
         data = zip_bytes([("PC.unitypackage", package(asset(), asset(B, "Assets/Editor/private.cs", b"PRIVATE_SOURCE_MARKER"))),
