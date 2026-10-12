@@ -1,6 +1,6 @@
 ---
 name: funavatar
-description: Build and debug expressive, rigged and animated avatar projects directly in Blender and Unity, plan tracking and platform-specific physics, and create consistent 2D references when needed. Use for FunAvatar, avatar creation, animation, hand/full-body tracking and concrete defects. Tripo and other generators are optional handoff routes; assets and static reports do not certify tested avatar behavior.
+description: Build, inspect and debug expressive avatar projects in Blender and Unity; learn construction techniques from authorized avatar packages, plan tracking and platform-specific physics, and create consistent 2D references. Use for FunAvatar, avatar reverse engineering, animation, hand/full-body tracking and concrete defects. Generators are optional; assets and static reports do not certify tested avatar behavior.
 ---
 
 # FunAvatar
@@ -23,6 +23,7 @@ Choose the route that matches the supplied evidence. Keep **2D concept**, **3D p
 | Build or repair the actual 3D character, rig and animations | [Native production](references/native-production.md), then [tracking/environment](references/tracking-environment.md) for responsive behavior | Editable Blender source and actual Unity assets/exports, native readback and distinct tracking/runtime proof. |
 | Select another production tool, use an optional generator, or track an imported model | [Production tools](references/production-tools.md), then [3D workflow](references/workflow-3d.md); [Tripo profile](references/tripo.md) only when selected | Provider-neutral source/export handoff and local revision ledger; only the selected adapter's operations are used. |
 | Existing model or Unity project, inventory or static defects | [Project checks](references/project-checks.md) | Native compact reports, findings, and clearly unverified runtime checks. |
+| Understand how an existing avatar is built, reverse engineer a feature, or transfer a construction technique | [Avatar study](references/avatar-study.md), then the relevant native route | Package/GUID evidence, native anatomy observations, a causal feature trace and an original tested implementation; source inventory is not runtime proof. |
 | Coordinated Blender/Unity work, MCP selection, facial shapes or modular integration | [Agent pipeline](references/agent-pipeline.md) | Source-inspected capabilities, actual local discovery, measured facial deltas and separate build/publication evidence. |
 | Measured performance or custom-parameter budgets | [Performance budgets](references/performance-budgets.md) | Offline checks of supported metrics and synced bits, with missing observations and SDK/runtime status explicit. |
 | OSC parameters, face-mode controls or runtime bridge planning | [OSC runtime](references/osc-runtime.md) | Read-only config inspection and typed set/reset packet plans; no network or social messages from the bundled planner. |
@@ -89,6 +90,8 @@ Assess reference fidelity, geometry/materials, rig/deformation, SDK build and cl
 When using external MCP tools, discover their actual schema and consult the [capability registry](assets/mcp-capability-registry.json) for pinned source findings. Never pass an SDK, export or facial gate from a positive stub, a pre-build callback, an empty generated shape or an outer success containing failed children. Capture native output and read it back. The registry is source research, not an installation or runtime attestation.
 
 ## Inspect or debug an existing avatar
+
+For unfamiliar avatar packages, prefab assembly or a request to learn/transfer a feature, start with [avatar study](references/avatar-study.md), including questions about apparently missing components or menus. Inspect the package offline before importing unfamiliar Unity content, select one behavior to trace, and reconstruct its mechanism on an original small probe. Keep third-party assets and study-specific evidence in the authorized project; add only reusable methods to the skill. Preserve the current reference-fidelity and dynamic-motion gates when applying a lesson to production.
 
 Use native reports and the offline helper as described in [project-checks.md](references/project-checks.md). Reports describe measured static observations; missing observations remain unknown. A clean report, fixture or successful script test is never proof of SDK validation, deformation quality, synchronization, PhysBones or native Android behavior.
 

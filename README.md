@@ -67,6 +67,12 @@ Discovery follows the [Codex skill guide](https://learn.chatgpt.com/docs/build-s
 
 Codex uses its built-in image generator when available. Other hosts use an available connected tool; without one, FunAvatar provides a brief and runnable prompts and leaves images pending. It does not install or charge for a provider to hide missing capabilities.
 
+## A clear brief and a demonstrated route
+
+Start from an image, a clear prompt, or both. FunAvatar asks only for material missing decisions, studies relevant authorized avatars, and proves the difficult feature before expanding production. Two attempts without material visual progress trigger a change of method. A requested 5–10% error target needs defined measurements and visual acceptance; it is not a guaranteed similarity score. See [production strategy](skills/funavatar/references/production-strategy.md).
+
+The [avatar-study guide](skills/funavatar/references/avatar-study.md) and offline package inspector trace assets, GUID/fileID dependencies and selected Unity declarations without importing or executing package content. Native observations and original behavior probes remain separate from static inventory and runtime certification.
+
 ## Native production and optional generators
 
 Start with [native Blender/Unity production](skills/funavatar/references/native-production.md). The agent uses an available application interface, MCP or focused native `bpy`/C# Editor script to create and read back actual assets; it does not stop at a picture when an animated avatar was requested. A temporary toolchain fixture is only execution proof and is never delivered as the final character.

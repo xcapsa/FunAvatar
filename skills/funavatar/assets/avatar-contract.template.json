@@ -23,6 +23,21 @@
     "fidelity_review": null,
     "production_status": "awaiting_fidelity_review"
   },
+  "production_strategy": {
+    "brief_status": "needs_review",
+    "selected_source_or_method": null,
+    "relevant_study_recipe": null,
+    "original_probe_evidence": null,
+    "max_attempts_without_material_visual_progress": 2
+  },
+  "quality_target": {
+    "scope": "declared_quantitative_measurements_only",
+    "target_relative_deviation_percent": 5,
+    "maximum_relative_deviation_percent": 10,
+    "measured_results": [],
+    "overall_similarity_percent": null,
+    "critical_identity_or_behavior_defects_allowed": false
+  },
   "visual_acceptance": {
     "reference_fidelity": "not_assessed",
     "unintended_boxy_silhouette_or_faceting": "needs_inspection",

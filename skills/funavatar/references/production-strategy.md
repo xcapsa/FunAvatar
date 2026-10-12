@@ -10,7 +10,7 @@ Keep all requested capabilities in the contract: expressive face/display and spe
 
 ## Learn from actual assets before choosing the implementation
 
-Read existing authorized avatar-study results before commissioning another investigation. Select only evidence relevant to the current problem. Learn construction and behavior from accessible source assets and their licenses; permission to study a package does not automatically permit copying its meshes, textures or redistribution.
+Use [avatar study](avatar-study.md) and read existing authorized results before commissioning another investigation. Select only evidence relevant to the current problem. Learn construction and behavior from accessible source assets and their licenses; permission to study a package does not automatically permit copying its meshes, textures or redistribution.
 
 Each reusable recipe needs: source/version/hash and object or asset, observed mechanism, evidence level (static/native/build/client), unresolved assumptions, the smallest original reproduction, and its acceptance test. Retain those study cards in the authorized project. Promote a recipe from observation to reusable implementation only after the original reproduction works. Do not turn an attractive screenshot or package inventory into a proven authoring method.
 
