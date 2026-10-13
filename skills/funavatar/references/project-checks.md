@@ -84,3 +84,29 @@ Platform scope: `both` means PC plus Android/Quest. Reports and debug plans do n
 When a tracked 3D asset is under inspection, attach the native report as evidence for the precise revision/hash in the separate `workflow.json` ledger. Do not add ledger, job, cost or lineage fields to these versioned observation reports, and do not pass a workflow ledger to `project-check`. Missing observations remain unknown in both routes.
 
 The workflow gates use `pass`, `needs_repair` or `not_assessed` for the specific check and asset revision. Static report results inform native investigation; they cannot by themselves pass reference fidelity, deformation, SDK or client gates. Preserve report evidence for earlier revisions, and invalidate affected downstream checks after geometry, materials, target or relevant settings change. Follow [workflow-3d.md](workflow-3d.md) only when creating or updating the production ledger.
+
+## VRChat export-readiness checks and comparison renders
+
+Two read-only Blender helpers catch failures that scripted avatars commonly hit before Unity, and produce matched views for the appearance review. Both run in a disposable background process and never save, export or upload.
+
+```sh
+blender --background avatar.blend --python scripts/blender_vrc_checks.py -- --out /abs/vrc-checks.json
+blender --background avatar.blend --python scripts/blender_ortho_render.py -- --outdir /abs/new-render-dir --weights-bone Head
+```
+
+`blender_vrc_checks.py` (schema `funavatar.blender-vrc-checks.v1`) reads the saved rest pose and weights. Blocking checks:
+
+| Check | Fails when | Fix before export |
+| --- | --- | --- |
+| `transforms_applied` | armature or skinned mesh has scale ≠ 1.0 or nonzero rotation | apply rotation/scale on armature and meshes |
+| `leaf_bones` | `_end`/`_leaf`/`_nub` tip bones exist | delete them; export FBX with `add_leaf_bones=False` |
+| `humanoid_bones` | one of the 15 required Unity Humanoid roles is missing (`unknown` if several bones match; pass `--bone-map roles.json`) | rename or map bones |
+| `modifiers_vs_shape_keys` | a mesh with shape keys still has non-Armature modifiers | apply all modifiers (including the cage `DataTransfer` weights) **before** creating or loading visemes; export with `use_mesh_modifiers=False` |
+| `unweighted_vertices` | a vertex has no deform-bone weight | weight or delete it |
+| `first_person_head` | a vertex above the Head joint (plus `--head-blend-margin`, default 25% of Head length) has weight outside Head and its descendants; a loose head part (eyes, teeth, hair cap) has any outside weight; or neck skin has >0.5 Head weight with no Neck weight | keep head geometry on Head descendants and blend the neck seam into Neck/Chest |
+
+`rest_pose` is advisory: arms more than `--max-arm-tilt` (default 10°) from horizontal are reported because T-pose is the FunAvatar default for reliable Humanoid mapping; an intentional A-pose may still import. Long hair hanging below the head is exempt from the neck rule. The report also lists bone, deform-bone, triangle, shape-key and material-slot counts for the [budget checker](performance-budgets.md); it does not assign a Performance Rank.
+
+`blender_ortho_render.py` (schema `funavatar.blender-ortho-render.v1`) renders `front`, `left` (the character's anatomical left), `back` and a perspective `three_quarter` view, plus `sheet-2x2.png` laid out front|left over back|three-quarter. All orthographic views share one camera scale; `render.json` records `meters_per_pixel_ortho` so landmark measurements against a calibrated reference stay comparable. The three-quarter view is perspective and not measurable. `--engine workbench` (default, fastest), `eevee` or `cycles` is resolved to the identifier the installed Blender accepts (EEVEE is `BLENDER_EEVEE_NEXT` in 4.2–4.x and `BLENDER_EEVEE` again in 5.x). `--weights-bone Head` adds front/left views painted red where vertices follow that bone's subtree. These are evidence for the [reference reconstruction review](reference-reconstruction.md#review-before-running-the-next-production-stage); they do not score likeness.
+
+Neither helper establishes an FBX round trip, Unity Humanoid import, SDK build or in-client first-person behavior. Unity-side import settings, for example `importBlendShapeNormals`, stay a separate Unity check. `tests/blender/vrc_fixture.py` builds a disposable mannequin (clean or `--defects`) to prove the helpers on a real Blender install; it is never an avatar.
