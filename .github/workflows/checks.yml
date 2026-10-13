@@ -35,5 +35,6 @@ jobs:
       - run: python -m unittest discover -s tests -p test_vrc_acceptance.py -v
       - run: python -m unittest discover -s tests -p test_osc_avatar.py -v
       - run: python -m unittest discover -s tests -p test_blender_face_probe.py -v
+      - run: python -m unittest discover -s tests -p test_blender_vrc_checks.py -v
       - run: python -m unittest discover -s tests -p test_fidelity_review.py -v
       - run: python -m unittest discover -s tests -p test_avatar_inspect.py -v
