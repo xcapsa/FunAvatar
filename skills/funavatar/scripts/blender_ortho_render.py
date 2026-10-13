@@ -240,10 +240,18 @@ def render(bpy, outdir, engine="workbench", resolution=1024, views=SHEET_ORDER, 
     weight_files = {}
     weights_note = None
     if weights_bone:
-        arm = bpy.data.objects.get(armature) if armature else next(
-            (o for o in bpy.data.objects if o.type == "ARMATURE"), None)
-        if arm is None or weights_bone not in arm.data.bones:
-            weights_note = "Weights bone/armature not found; weight views skipped"
+        if armature:
+            arm = bpy.data.objects.get(armature)
+            arm = arm if arm is not None and arm.type == "ARMATURE" else None
+        else:
+            rigs = {m.object for o in targets for m in o.modifiers
+                    if m.type == "ARMATURE" and m.object is not None}
+            arm = next(iter(rigs)) if len(rigs) == 1 else None
+        if arm is None:
+            weights_note = ("Armature not found or ambiguous across target meshes; pass --armature. "
+                            "Weight views skipped")
+        elif weights_bone not in arm.data.bones:
+            weights_note = "Weights bone not in armature; weight views skipped"
         elif engine_id != "BLENDER_WORKBENCH":
             weights_note = "Weight views need --engine workbench; skipped"
         else:

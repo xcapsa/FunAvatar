@@ -99,6 +99,20 @@ class AnalyzeTests(unittest.TestCase):
         self.assertEqual(by_name(report)["leaf_bones"]["bones"], ["Head_end"])
         self.assertEqual(report["status"], "needs_repair")
 
+    def test_weighted_deforming_tip_is_not_a_leaf_bone(self):
+        cap = clean_capture()
+        cap["armature"]["bones"]["hair_end"] = bone("Head", (0, 0.1, 1.7), (0, 0.15, 1.4))
+        cap["meshes"][2]["vertices"][1]["groups"] = [("hair_end", 1.0)]
+        result = by_name(checks.analyze(cap))["leaf_bones"]
+        self.assertEqual((result["status"], result["weighted_tips_kept"]), ("pass", ["hair_end"]))
+
+    def test_no_skinned_meshes_is_unknown_not_pass(self):
+        cap = clean_capture()
+        cap["meshes"] = []
+        report = checks.analyze(cap)
+        self.assertEqual(report["status"], "unknown")
+        self.assertEqual(by_name(report)["first_person_head"]["status"], "unknown")
+
     def test_unapplied_scale_blocks(self):
         cap = clean_capture()
         cap["meshes"][0]["scale"] = (100, 100, 100)

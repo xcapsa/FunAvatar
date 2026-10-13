@@ -172,13 +172,22 @@ def check_transforms(objects, tolerance=1e-4):
     return _check("transforms_applied", "pass", "blocking", "Armature and meshes have unit scale and zero rotation")
 
 
-def check_leaf_bones(bones):
-    leaf = sorted(name for name, bone in bones.items()
-                  if _LEAF_RE.search(name) and not any(b.get("parent") == name for b in bones.values()))
+def check_leaf_bones(bones, weighted_bones=frozenset()):
+    """FBX-generated tips: end-style name, no children, and no deforming role (no weights)."""
+    leaf, kept = [], []
+    for name, bone in bones.items():
+        if not _LEAF_RE.search(name) or any(b.get("parent") == name for b in bones.values()):
+            continue
+        if bone.get("use_deform", True) and name in weighted_bones:
+            kept.append(name)  # an intentional deforming tip such as hair_end
+        else:
+            leaf.append(name)
     if leaf:
         return _check("leaf_bones", "needs_repair", "blocking",
-                      "Remove leaf/end bones; export FBX with add_leaf_bones=False", bones=leaf)
-    return _check("leaf_bones", "pass", "blocking", "No leaf/end bones found")
+                      "Remove unweighted leaf/end tip bones; export FBX with add_leaf_bones=False",
+                      bones=sorted(leaf), weighted_tips_kept=sorted(kept))
+    return _check("leaf_bones", "pass", "blocking", "No unweighted leaf/end tip bones found",
+                  weighted_tips_kept=sorted(kept))
 
 
 def check_humanoid(mapping, ambiguous):
@@ -265,6 +274,10 @@ def check_weights(meshes, bones, mapping, head_blend_margin=0.25, sample_limit=2
     deform = {name for name, bone in bones.items() if bone.get("use_deform", True)}
     head_name, neck_name = mapping.get("Head"), mapping.get("Neck")
     unweighted, checks = [], []
+    if not meshes:
+        note = "No skinned meshes in scope; pass --mesh or add an Armature modifier targeting the armature"
+        return [_check("unweighted_vertices", "unknown", "blocking", note),
+                _check("first_person_head", "unknown", "blocking", note)]
     head_known = head_name is not None and head_name in bones
     if head_known:
         head_set = descendants(bones, head_name)
@@ -362,7 +375,8 @@ def analyze(captured, bone_map=None, max_tilt_degrees=10.0, head_blend_margin=0.
             ambiguous.pop(role, None)
     checks = [
         check_transforms([captured["armature"]] + captured["meshes"]),
-        check_leaf_bones(bones),
+        check_leaf_bones(bones, {g for m in captured["meshes"] for v in m["vertices"]
+                                 for g, w in v["groups"] if w > 0}),
         check_humanoid(mapping, ambiguous),
         check_rest_pose(bones, mapping, max_tilt_degrees),
         check_modifiers(captured["meshes"]),
